@@ -12,3 +12,10 @@ export type {
 } from './IBridgeTracker.js';
 export type { ITrackingService } from './ITrackingService.js';
 export type { IRecoveryService } from './IRecoveryService.js';
+export type {
+  IApprovalService,
+  ApprovalParams,
+  ApprovalResult,
+  ApprovalTokenInfo,
+  PermitSignature,
+} from './IApprovalService.js';

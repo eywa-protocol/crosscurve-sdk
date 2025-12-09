@@ -16,6 +16,7 @@ import {
   TrackingService,
   RecoveryService,
   TokenService,
+  ApprovalService,
 } from './application/services/index.js';
 import {
   RoutingScope,
@@ -69,6 +70,7 @@ export class CrossCurveSDK {
   private readonly trackingService: TrackingService;
   private readonly recoveryService: RecoveryService;
   private readonly tokenService: TokenService;
+  private readonly approvalService: ApprovalService;
 
   public readonly routing: RoutingScope;
   public readonly tx: TxScope;
@@ -113,11 +115,19 @@ export class CrossCurveSDK {
       new RubicTracker(),
       new BungeeTracker(),
     ]);
-    this.recoveryService = new RecoveryService(this.apiClient, this.trackingService);
+    this.approvalService = new ApprovalService();
+    this.recoveryService = new RecoveryService(
+      this.apiClient,
+      this.trackingService,
+      this.approvalService,
+      this.config.approvalMode
+    );
     this.executeService = new ExecuteService(
       this.apiClient,
       this.trackingService,
-      this.recoveryService
+      this.recoveryService,
+      this.approvalService,
+      this.config.approvalMode
     );
     this.tokenService = new TokenService(this.apiClient, this.cache);
 

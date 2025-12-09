@@ -17,6 +17,7 @@ export function applyConfigDefaults(config?: Partial<CrossCurveConfig>): SDKConf
     apiKey: config?.apiKey,
     baseUrl: config?.baseUrl ?? DEFAULT_BASE_URL,
     maxSlippage: config?.maxSlippage,
+    approvalMode: config?.approvalMode ?? 'exact',
     warnings: {
       inconsistencyResolution: config?.warnings?.inconsistencyResolution ?? true,
     },
@@ -35,6 +36,10 @@ export function validateConfig(config: SDKConfig): void {
     if (config.maxSlippage < 0 || config.maxSlippage > 100) {
       throw new Error('maxSlippage must be between 0 and 100');
     }
+  }
+
+  if (config.approvalMode !== 'exact' && config.approvalMode !== 'unlimited') {
+    throw new Error('approvalMode must be either "exact" or "unlimited"');
   }
 }
 

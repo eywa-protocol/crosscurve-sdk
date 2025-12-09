@@ -5,7 +5,13 @@
  * @layer application - Depends ONLY on domain
  */
 
-import type { IApiClient, ITrackingService, IRecoveryService } from '../../domain/interfaces/index.js';
+import type {
+  IApiClient,
+  ITrackingService,
+  IRecoveryService,
+  IApprovalService,
+  ApprovalTokenInfo,
+} from '../../domain/interfaces/index.js';
 import type {
   Quote,
   ExecuteOptions,
@@ -13,11 +19,13 @@ import type {
   TransactionStatus,
   TransactionRequest,
   TrackingOptions,
+  ApprovalMode,
 } from '../../types/index.js';
 import { RouteProvider, type RouteProviderValue } from '../../constants/providers.js';
 import { pollWithCallback } from '../../utils/polling.js';
 import { validateAddress } from '../../utils/validation.js';
 import { encodeCalldataFromResponse } from '../../utils/calldata.js';
+import { isNativeToken } from '../../utils/permit.js';
 
 /**
  * ComplexOpProcessed event topic hash
@@ -43,7 +51,9 @@ export class ExecuteService {
   constructor(
     private readonly apiClient: IApiClient,
     private readonly trackingService: ITrackingService,
-    private readonly recoveryService: IRecoveryService
+    private readonly recoveryService: IRecoveryService,
+    private readonly approvalService: IApprovalService,
+    private readonly approvalMode: ApprovalMode
   ) {}
 
   /**
@@ -56,13 +66,45 @@ export class ExecuteService {
 
     validateAddress(recipient, 'recipient');
 
-    const txData = await this.apiClient.createTransaction({
+    // Step 1: Get transaction data from API (includes spender address)
+    let txData = await this.apiClient.createTransaction({
       from: address,
       recipient,
       routing: quote,
       buildCalldata: false,
     });
 
+    // Step 2: Handle token approval if needed
+    const sourceToken = this.extractSourceToken(quote);
+    if (sourceToken && !isNativeToken(sourceToken.address)) {
+      const approvalResult = await this.approvalService.handleApproval({
+        token: sourceToken,
+        chainId: quote.route[0]?.fromChainId ?? 0,
+        owner: address,
+        spender: txData.to,
+        amount: BigInt(quote.amountIn),
+        signer: options.signer,
+        mode: this.approvalMode,
+      });
+
+      // If permit was used, re-call API with permit signature
+      if (approvalResult.type === 'permit' && approvalResult.permit) {
+        txData = await this.apiClient.createTransaction({
+          from: address,
+          recipient,
+          routing: quote,
+          buildCalldata: false,
+          permit: {
+            v: approvalResult.permit.v,
+            r: approvalResult.permit.r,
+            s: approvalResult.permit.s,
+            deadline: approvalResult.permit.deadline,
+          },
+        });
+      }
+    }
+
+    // Step 3: Encode and send transaction
     const calldata = encodeCalldataFromResponse(txData);
 
     const txRequest: TransactionRequest = {
@@ -93,6 +135,21 @@ export class ExecuteService {
     }
 
     return this.trackByProvider(sentTx.hash, provider, requestId, bridgeId, quote, options);
+  }
+
+  /**
+   * Extract source token info from quote for approval
+   */
+  private extractSourceToken(quote: Quote): ApprovalTokenInfo | undefined {
+    const firstStep = quote.route[0];
+    if (!firstStep?.fromToken) {
+      return undefined;
+    }
+
+    return {
+      address: firstStep.fromToken.address,
+      permit: true, // Assume permit support, ApprovalService will handle fallback
+    };
   }
 
   private async trackByProvider(

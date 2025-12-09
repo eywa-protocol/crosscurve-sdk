@@ -5,11 +5,12 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ExecuteService } from '../../../../src/application/services/ExecuteService.js';
-import type { IApiClient, ITrackingService, IRecoveryService } from '../../../../src/domain/interfaces/index.js';
+import type { IApiClient, ITrackingService, IRecoveryService, IApprovalService } from '../../../../src/domain/interfaces/index.js';
 import { createMockApiClient, mockResponses } from '../../../mocks/MockApiClient.js';
 import { createMockSigner, createMockTxResponseWithRequestId, TEST_ADDRESS } from '../../../mocks/MockSigner.js';
 import { createMockTrackingService, mockStatuses } from '../../../mocks/MockTrackingService.js';
 import { createMockRecoveryService } from '../../../mocks/MockRecoveryService.js';
+import { createMockApprovalService } from '../../../mocks/MockApprovalService.js';
 import { crossChainQuote, sameChainQuote, rubicQuote, bungeeQuote, emptyRouteQuote } from '../../../fixtures/quotes.js';
 import { RouteProvider } from '../../../../src/constants/providers.js';
 
@@ -17,17 +18,21 @@ describe('ExecuteService', () => {
   let mockApiClient: ReturnType<typeof createMockApiClient>;
   let mockTrackingService: ReturnType<typeof createMockTrackingService>;
   let mockRecoveryService: ReturnType<typeof createMockRecoveryService>;
+  let mockApprovalService: ReturnType<typeof createMockApprovalService>;
   let service: ExecuteService;
 
   beforeEach(() => {
     mockApiClient = createMockApiClient();
     mockTrackingService = createMockTrackingService();
     mockRecoveryService = createMockRecoveryService();
+    mockApprovalService = createMockApprovalService();
 
     service = new ExecuteService(
       mockApiClient as IApiClient,
       mockTrackingService as ITrackingService,
-      mockRecoveryService as IRecoveryService
+      mockRecoveryService as IRecoveryService,
+      mockApprovalService as IApprovalService,
+      'exact'
     );
   });
 

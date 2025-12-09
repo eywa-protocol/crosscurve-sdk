@@ -5,6 +5,24 @@
  */
 
 import { vi } from 'vitest';
+import { readFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
+
+// Load .env.test file manually
+const envTestPath = resolve(process.cwd(), '.env.test');
+if (existsSync(envTestPath)) {
+  const envContent = readFileSync(envTestPath, 'utf-8');
+  for (const line of envContent.split('\n')) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const [key, ...valueParts] = trimmed.split('=');
+      const value = valueParts.join('=');
+      if (key && value !== undefined && !process.env[key]) {
+        process.env[key] = value;
+      }
+    }
+  }
+}
 
 // Only mock fetch for unit tests, not E2E
 // E2E tests need real fetch to hit the API

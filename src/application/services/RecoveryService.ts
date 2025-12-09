@@ -5,13 +5,19 @@
  * @layer application - Depends ONLY on domain
  */
 
-import type { IApiClient, ITrackingService } from '../../domain/interfaces/index.js';
+import type {
+  IApiClient,
+  ITrackingService,
+  IApprovalService,
+  ApprovalTokenInfo,
+} from '../../domain/interfaces/index.js';
 import type {
   RecoveryOptions,
   ExecuteResult,
   TransactionStatus,
   TransactionRequest,
   RecoveryType,
+  ApprovalMode,
 } from '../../types/index.js';
 import { RouteProvider } from '../../constants/providers.js';
 import {
@@ -20,6 +26,7 @@ import {
   createInconsistencySignatureMessage,
 } from '../../utils/signature.js';
 import { encodeCalldataFromResponse } from '../../utils/calldata.js';
+import { isNativeToken } from '../../utils/permit.js';
 
 /**
  * Service for handling recovery operations
@@ -27,7 +34,9 @@ import { encodeCalldataFromResponse } from '../../utils/calldata.js';
 export class RecoveryService {
   constructor(
     private readonly apiClient: IApiClient,
-    private readonly trackingService: ITrackingService
+    private readonly trackingService: ITrackingService,
+    private readonly approvalService: IApprovalService,
+    private readonly approvalMode: ApprovalMode
   ) {}
 
   /**
@@ -197,17 +206,46 @@ export class RecoveryService {
 
     const selectedRoute = routes[0];
 
-    // Step 3: Create signature and call /inconsistency
+    // Step 3: Create signature and call /inconsistency to get spender address
     const message = createInconsistencySignatureMessage(requestId);
     const signature = await options.signer.signMessage(message);
 
-    const txResponse = await this.apiClient.createInconsistency({
+    let txResponse = await this.apiClient.createInconsistency({
       requestId,
       signature,
       routing: selectedRoute,
     });
 
-    // Step 4: Encode calldata and send transaction
+    // Step 4: Handle token approval if needed
+    const sourceToken = this.extractSourceToken(selectedRoute);
+    if (sourceToken && !isNativeToken(sourceToken.address)) {
+      const approvalResult = await this.approvalService.handleApproval({
+        token: sourceToken,
+        chainId: inconsistencyParams.params.chainIdIn,
+        owner: address,
+        spender: txResponse.to,
+        amount: BigInt(inconsistencyParams.params.amountIn),
+        signer: options.signer,
+        mode: this.approvalMode,
+      });
+
+      // If permit was used, re-call API with permit signature
+      if (approvalResult.type === 'permit' && approvalResult.permit) {
+        txResponse = await this.apiClient.createInconsistency({
+          requestId,
+          signature,
+          routing: selectedRoute,
+          permit: {
+            v: approvalResult.permit.v,
+            r: approvalResult.permit.r,
+            s: approvalResult.permit.s,
+            deadline: approvalResult.permit.deadline,
+          },
+        });
+      }
+    }
+
+    // Step 5: Encode calldata and send transaction
     const calldata = encodeCalldataFromResponse(txResponse);
 
     const txRequest: TransactionRequest = {
@@ -229,6 +267,21 @@ export class RecoveryService {
       requestId,
       provider: RouteProvider.CROSS_CURVE,
       status,
+    };
+  }
+
+  /**
+   * Extract source token info from quote for approval
+   */
+  private extractSourceToken(quote: { route: Array<{ fromToken?: { address: string } }> }): ApprovalTokenInfo | undefined {
+    const firstStep = quote.route[0];
+    if (!firstStep?.fromToken) {
+      return undefined;
+    }
+
+    return {
+      address: firstStep.fromToken.address,
+      permit: true, // Assume permit support, ApprovalService will handle fallback
     };
   }
 }

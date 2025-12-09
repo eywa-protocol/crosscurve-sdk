@@ -3,7 +3,7 @@
  * Type-only exports for clean public API
  */
 
-export type { CrossCurveConfig, SDKConfig } from './config.js';
+export type { CrossCurveConfig, SDKConfig, ApprovalMode } from './config.js';
 export type { ChainSigner, TransactionRequest, TransactionResponse, TransactionReceipt } from './signer.js';
 export type { Chain } from './chain.js';
 export type { Token, TokenReference } from './token.js';
