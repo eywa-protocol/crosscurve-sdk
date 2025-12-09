@@ -3,7 +3,6 @@
  *
  * Tests web3.js v4 library integration for ChainSigner interface
  * Note: Web3 uses Buffer for message encoding and different API patterns
- * @implements PRD Section 7.3 - Signer Abstraction
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';

@@ -1,6 +1,5 @@
 /**
  * @fileoverview Recovery signature creation utilities
- * @implements PRD Section 7.10 - Recovery
  */
 
 /**

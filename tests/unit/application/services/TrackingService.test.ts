@@ -1,6 +1,5 @@
 /**
  * @fileoverview TrackingService unit tests
- * @implements PRD Section 3.2 US-2 - Manual Tracking
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';

@@ -1,6 +1,5 @@
 /**
  * @fileoverview Invalid quote error class
- * @implements PRD Appendix C - Error Classes
  */
 
 import { BaseError } from './BaseError.js';

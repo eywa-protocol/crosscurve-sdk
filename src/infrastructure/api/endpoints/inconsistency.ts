@@ -1,6 +1,5 @@
 /**
  * @fileoverview Inconsistency endpoint implementations
- * @implements PRD Appendix A - Inconsistency endpoints
  */
 
 import type { HttpClient } from '../client/index.js';

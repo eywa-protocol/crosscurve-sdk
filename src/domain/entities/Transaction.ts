@@ -3,7 +3,7 @@
  * @layer domain - ZERO external dependencies
  */
 
-import type { TransactionStatus, RecoveryInfo } from '../../types/transaction.js';
+import type { TransactionStatus, RecoveryInfo, TransactionMetadata } from '../../types/transaction.js';
 
 /**
  * Transaction entity representing transaction status
@@ -15,7 +15,7 @@ export class TransactionEntity implements TransactionStatus {
   readonly source: TransactionStatus['source'];
   readonly oracle: TransactionStatus['oracle'];
   readonly destination: TransactionStatus['destination'];
-  readonly data: any;
+  readonly data?: TransactionMetadata;
   readonly recovery?: RecoveryInfo;
   readonly warning?: TransactionStatus['warning'];
 

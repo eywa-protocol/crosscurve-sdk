@@ -1,7 +1,5 @@
 /**
  * @fileoverview Transaction execution service
- * @implements PRD Section 3.2 US-1 - Simple Swap with Auto-Recovery
- * @implements PRD Section 5.1 - Tier 1 Flow
  * @layer application - Depends ONLY on domain
  */
 
@@ -26,15 +24,8 @@ import { pollWithCallback } from '../../utils/polling.js';
 import { validateAddress } from '../../utils/validation.js';
 import { encodeCalldataFromResponse } from '../../utils/calldata.js';
 import { isNativeToken } from '../../utils/permit.js';
-
-/**
- * ComplexOpProcessed event topic hash
- * event ComplexOpProcessed(uint64 indexed chainIdFrom, bytes32 indexed currentRequestId,
- *   uint64 chainIdTo, bytes32 nextRequestId, uint8 result, uint8 lastOp)
- *
- * Computed: keccak256('ComplexOpProcessed(uint64,bytes32,uint64,bytes32,uint8,uint8)')
- */
-const COMPLEX_OP_PROCESSED_TOPIC = '0x830adbcf80ee865e0f0883ad52e813fdbf061b0216b724694a2b4e06708d243c';
+import { extractRequestIdFromLogs } from '../../utils/logParser.js';
+import { TransactionError } from '../../errors/index.js';
 
 /** Default polling config for external bridges (slower than CrossCurve) */
 const EXTERNAL_BRIDGE_POLLING = {
@@ -58,7 +49,6 @@ export class ExecuteService {
 
   /**
    * Execute a quote
-   * @implements PRD Section 5.1 - executeQuote()
    */
   async executeQuote(quote: Quote, options: ExecuteOptions): Promise<ExecuteResult> {
     const address = await options.signer.getAddress();
@@ -77,9 +67,16 @@ export class ExecuteService {
     // Step 2: Handle token approval if needed
     const sourceToken = this.extractSourceToken(quote);
     if (sourceToken && !isNativeToken(sourceToken.address)) {
+      // If sourceToken exists, quote.route[0] must exist (extractSourceToken checks this)
+      const firstStep = quote.route[0];
+      const chainId = this.extractSourceChainId(firstStep);
+      if (!chainId) {
+        throw new Error('Quote route missing source chain ID');
+      }
+
       const approvalResult = await this.approvalService.handleApproval({
         token: sourceToken,
-        chainId: quote.route[0]?.fromChainId ?? 0,
+        chainId,
         owner: address,
         spender: txData.to,
         amount: BigInt(quote.amountIn),
@@ -118,11 +115,41 @@ export class ExecuteService {
       nonce: options.nonce,
     };
 
-    const sentTx = await options.signer.sendTransaction(txRequest);
-    const receipt = await sentTx.wait();
+    // Send transaction with error handling
+    let sentTx;
+    try {
+      sentTx = await options.signer.sendTransaction(txRequest);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new TransactionError(
+        `Failed to send transaction: ${message}`,
+        undefined,
+        message
+      );
+    }
+
+    // Wait for receipt with error handling
+    let receipt;
+    try {
+      receipt = await sentTx.wait();
+      if (!receipt) {
+        throw new Error('Transaction receipt is null - transaction may have been dropped');
+      }
+      if (receipt.status === 0) {
+        throw new Error('Transaction reverted');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new TransactionError(
+        `Transaction failed: ${message}`,
+        sentTx.hash,
+        message
+      );
+    }
 
     const provider = this.extractProvider(quote);
-    const requestId = this.extractRequestIdFromLogs(receipt);
+    // Cast receipt to include logs - adapters return full receipt from underlying library
+    const requestId = extractRequestIdFromLogs(receipt as { logs?: Array<{ topics?: string[]; data?: string }> });
     const bridgeId = this.extractBridgeId(quote, provider);
 
     if (!options.autoRecover) {
@@ -138,17 +165,72 @@ export class ExecuteService {
   }
 
   /**
-   * Extract source token info from quote for approval
+   * Extract source chain ID from route step
+   * Handles both standard format (fromChainId) and Rubic format (chainId, params.chainIdIn)
    */
-  private extractSourceToken(quote: Quote): ApprovalTokenInfo | undefined {
-    const firstStep = quote.route[0];
-    if (!firstStep?.fromToken) {
+  private extractSourceChainId(step: RouteStep | undefined): number | undefined {
+    if (!step) {
       return undefined;
     }
 
+    // Try standard format first
+    if (step.fromChainId) {
+      return step.fromChainId;
+    }
+
+    // Try Rubic format: step.chainId or step.params.chainIdIn
+    const stepWithChainId = step as { chainId?: number };
+    if (stepWithChainId.chainId) {
+      return stepWithChainId.chainId;
+    }
+
+    if (step.params) {
+      const params = step.params as Record<string, unknown>;
+      if (typeof params.chainIdIn === 'number') {
+        return params.chainIdIn;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Extract source token info from quote for approval
+   * Note: External bridges (Rubic, Bungee) don't support permit signatures,
+   * so we disable permit for those routes.
+   */
+  private extractSourceToken(quote: Quote): ApprovalTokenInfo | undefined {
+    const firstStep = quote.route[0];
+    if (!firstStep) {
+      return undefined;
+    }
+
+    // Try to get token address from different possible locations in the route step
+    // 1. Standard format: firstStep.fromToken.address
+    // 2. Rubic format: firstStep.params.tokenIn.address
+    let tokenAddress: string | undefined;
+
+    if (firstStep.fromToken?.address) {
+      tokenAddress = firstStep.fromToken.address;
+    } else if (firstStep.params) {
+      const params = firstStep.params as Record<string, unknown>;
+      const tokenIn = params.tokenIn as { address?: string } | undefined;
+      if (tokenIn?.address) {
+        tokenAddress = tokenIn.address;
+      }
+    }
+
+    if (!tokenAddress) {
+      return undefined;
+    }
+
+    // External bridges don't support permit - they require standard approve()
+    const provider = this.extractProvider(quote);
+    const supportsPermit = provider === RouteProvider.CROSS_CURVE;
+
     return {
-      address: firstStep.fromToken.address,
-      permit: true, // Assume permit support, ApprovalService will handle fallback
+      address: tokenAddress,
+      permit: supportsPermit,
     };
   }
 
@@ -160,22 +242,26 @@ export class ExecuteService {
     quote: Quote,
     options: ExecuteOptions
   ): Promise<ExecuteResult> {
-    switch (provider) {
-      case RouteProvider.CROSS_CURVE: {
-        if (!requestId) {
-          throw new Error('CrossCurve transaction missing requestId from ComplexOpProcessed event');
-        }
-        const status = await this.pollAndRecover(requestId, quote, options);
-        return { transactionHash: txHash, requestId, provider, status };
-      }
-
-      case RouteProvider.RUBIC:
-      case RouteProvider.BUNGEE: {
-        const chainId = this.getSourceChainId(quote);
-        const status = await this.pollExternalBridge(txHash, provider, bridgeId, chainId, options);
-        return { transactionHash: txHash, provider, bridgeId, status };
-      }
+    // All routes go through CrossCurve contract and emit ComplexOpProcessed event
+    // So we should always track via CrossCurve API using requestId
+    if (requestId) {
+      const status = await this.pollAndRecover(requestId, quote, options);
+      return { transactionHash: txHash, requestId, provider, status };
     }
+
+    // Fallback to external bridge tracking only if no requestId was extracted
+    // This shouldn't normally happen since CrossCurve always emits the event
+    if (provider === RouteProvider.RUBIC || provider === RouteProvider.BUNGEE) {
+      const chainId = this.getSourceChainId(quote);
+      console.log('[DEBUG] trackByProvider - using external bridge tracking');
+      console.log('[DEBUG] trackByProvider - txHash:', txHash);
+      console.log('[DEBUG] trackByProvider - provider:', provider);
+      console.log('[DEBUG] trackByProvider - bridgeId:', bridgeId);
+      const status = await this.pollExternalBridge(txHash, provider, bridgeId, chainId, options);
+      return { transactionHash: txHash, provider, bridgeId, status };
+    }
+
+    throw new Error('CrossCurve transaction missing requestId from ComplexOpProcessed event');
   }
 
   /**
@@ -253,12 +339,15 @@ export class ExecuteService {
     const nestedQuote = routeQuote?.quote as Record<string, unknown> | undefined;
     const rubicId = nestedQuote?.id as string | undefined;
 
+    console.log('[DEBUG] extractBridgeId - routeQuote:', routeQuote ? 'exists' : 'undefined');
+    console.log('[DEBUG] extractBridgeId - nestedQuote:', nestedQuote ? 'exists' : 'undefined');
+    console.log('[DEBUG] extractBridgeId - rubicId:', rubicId);
+
     return rubicId;
   }
 
   /**
    * Poll transaction status and handle auto-recovery
-   * @implements PRD Section 5.1 - autoRecover flow
    */
   private async pollAndRecover(
     requestId: string,
@@ -330,66 +419,5 @@ export class ExecuteService {
     const baseTime = 5 * 60 * 1000;
     const hopTime = quote.route.length * 2 * 60 * 1000;
     return baseTime + hopTime;
-  }
-
-  /**
-   * Extract requestId from ComplexOpProcessed event in transaction logs
-   *
-   * Event signature:
-   * event ComplexOpProcessed(
-   *   uint64 indexed chainIdFrom,
-   *   bytes32 indexed currentRequestId,
-   *   uint64 chainIdTo,
-   *   bytes32 nextRequestId,
-   *   uint8 result,
-   *   uint8 lastOp
-   * )
-   *
-   * IMPORTANT: Must check topics[0] matches COMPLEX_OP_PROCESSED_TOPIC
-   * External bridges (rubic/bungee) don't emit this event - requestId will be undefined
-   */
-  private extractRequestIdFromLogs(receipt: any): string | undefined {
-    if (!receipt?.logs || !Array.isArray(receipt.logs)) {
-      return undefined;
-    }
-
-    for (const log of receipt.logs) {
-      // CRITICAL: First check if this is a ComplexOpProcessed event by matching topic hash
-      // topics[0] is the event signature hash, topics[1] is chainIdFrom, topics[2] is currentRequestId
-      if (!log.topics || log.topics.length < 3) {
-        continue;
-      }
-
-      // Must match the ComplexOpProcessed event signature
-      if (log.topics[0] !== COMPLEX_OP_PROCESSED_TOPIC) {
-        continue;
-      }
-
-      try {
-        // Decode non-indexed data: (uint64 chainIdTo, bytes32 nextRequestId, uint8 result, uint8 lastOp)
-        // nextRequestId is at offset 32 (after chainIdTo which is padded to 32 bytes)
-        const data = log.data;
-        if (data && data.length >= 130) { // 0x + 64 chars for chainIdTo + 64 chars for nextRequestId
-          // Extract nextRequestId (bytes32 at position 32-64)
-          const nextRequestId = '0x' + data.slice(66, 130);
-          if (nextRequestId && nextRequestId !== '0x' + '0'.repeat(64)) {
-            return nextRequestId;
-          }
-        }
-
-        // Fallback: use currentRequestId from topics[2]
-        const currentRequestId = log.topics[2];
-        if (currentRequestId && currentRequestId !== '0x' + '0'.repeat(64)) {
-          return currentRequestId;
-        }
-      } catch (error) {
-        // Log parsing failed for this entry, continue to next log
-        // This can happen with malformed logs or unexpected data formats
-        console.debug('Failed to parse ComplexOpProcessed log:', error);
-      }
-    }
-
-    // No ComplexOpProcessed event found - this is expected for external bridges
-    return undefined;
   }
 }

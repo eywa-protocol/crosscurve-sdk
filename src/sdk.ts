@@ -1,8 +1,5 @@
 /**
  * @fileoverview Main CrossCurve SDK class
- * @implements PRD Section 1 - Executive Summary
- * @implements PRD Section 4.3 - SDK Class Structure
- * @implements SDK_OVERVIEW.md Section 1 - Technical Structure
  */
 
 import type { SDKConfig, CrossCurveConfig } from './config/index.js';
@@ -139,7 +136,6 @@ export class CrossCurveSDK {
 
   /**
    * Initialize SDK - load chains and tokens
-   * @implements PRD Section 7.4 - init()
    */
   async init(): Promise<void> {
     await Promise.all([this.loadChains(), this.loadTokens()]);
@@ -147,7 +143,6 @@ export class CrossCurveSDK {
 
   /**
    * Load supported chains
-   * @implements PRD Section 7.4 - loadChains()
    */
   async loadChains(): Promise<Chain[]> {
     this._chains = await this.tokenService.loadChains();
@@ -156,7 +151,6 @@ export class CrossCurveSDK {
 
   /**
    * Load tokens for specific chain or all chains
-   * @implements PRD Section 7.4 - loadTokens()
    */
   async loadTokens(chainId?: number): Promise<Token[]> {
     const tokens = await this.tokenService.loadTokens(chainId);
@@ -182,8 +176,6 @@ export class CrossCurveSDK {
 
   /**
    * Get best quote for a swap
-   * @implements PRD Section 3.2 US-1 - getQuote()
-   * @implements PRD Section 5.1 - Tier 1 API
    */
   async getQuote(params: GetQuoteParams): Promise<Quote> {
     return this.quoteService.getQuote(params, this.config.maxSlippage);
@@ -191,8 +183,6 @@ export class CrossCurveSDK {
 
   /**
    * Execute a quote
-   * @implements PRD Section 3.2 US-1 - executeQuote()
-   * @implements PRD Section 5.1 - Tier 1 API
    */
   async executeQuote(quote: Quote, options: ExecuteOptions): Promise<ExecuteResult> {
     return this.executeService.executeQuote(quote, options);
@@ -200,8 +190,6 @@ export class CrossCurveSDK {
 
   /**
    * Track transaction status
-   * @implements PRD Section 3.2 US-2 - trackTransaction()
-   * @implements PRD Section 5.1 - Tier 1 API
    *
    * @param identifier - Request ID (CrossCurve) or transaction hash (external bridges)
    * @param options - Tracking options including provider info
@@ -229,7 +217,6 @@ export class CrossCurveSDK {
 
   /**
    * Search transactions
-   * @implements PRD Section 5.1 - Tier 1 API
    */
   async searchTransactions(query: string): Promise<TransactionStatus[]> {
     return this.trackingService.searchTransactions(query);
@@ -237,8 +224,6 @@ export class CrossCurveSDK {
 
   /**
    * Recover failed transaction
-   * @implements PRD Section 3.2 US-2 - recover()
-   * @implements PRD Section 5.1 - Tier 1 API
    */
   async recover(requestId: string, options: RecoveryOptions): Promise<ExecuteResult> {
     return this.recoveryService.recover(requestId, options);
@@ -246,7 +231,6 @@ export class CrossCurveSDK {
 
   /**
    * Get tokens for specific chain
-   * @implements PRD Section 7.4 - Accessors
    */
   getTokens(chainId: number): Token[] {
     return this.tokenService.getTokensByChain(this.allTokens, chainId);
@@ -254,7 +238,6 @@ export class CrossCurveSDK {
 
   /**
    * Get specific token
-   * @implements PRD Section 7.4 - Accessors
    */
   getToken(chainId: number, address: string): Token | undefined {
     return this.tokenService.getToken(this.allTokens, chainId, address);
@@ -262,8 +245,6 @@ export class CrossCurveSDK {
 
   /**
    * Get chain by CAIP-2 identifier
-   * @implements PRD Section 3.2 US-7 - CAIP-2 lookup
-   * @implements PRD Section 7.4 - Accessors
    */
   getChainByCaip2(caip2: string): Chain | undefined {
     return this.tokenService.getChainByCaip2(this._chains, caip2);

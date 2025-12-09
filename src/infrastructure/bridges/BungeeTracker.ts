@@ -17,6 +17,7 @@ import type {
   BungeeSourceStatus,
   BungeeDestinationStatus,
 } from './types.js';
+import { fetchWithRetry } from '../utils/fetchWithRetry.js';
 
 const BUNGEE_API_BASE = 'https://public-backend.bungee.exchange';
 
@@ -36,47 +37,21 @@ export class BungeeTracker implements IBridgeTracker {
     const url = new URL('/api/v1/bungee/status', BUNGEE_API_BASE);
     url.searchParams.set('txHash', params.transactionHash);
 
-    // Retry up to 3 times on transient errors
-    let lastError: Error | undefined;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+    const data = await fetchWithRetry<BungeeStatusResponse>(url.toString(), {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
 
-        const response = await fetch(url.toString(), {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-          },
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          throw new Error(`Bungee API error: ${response.status} ${response.statusText}`);
-        }
-
-        const data: BungeeStatusResponse = await response.json();
-
-        if (!data.success || !data.result || data.result.length === 0) {
-          throw new Error(data.message || 'Bungee API returned unsuccessful response');
-        }
-
-        // Result is an array, take the first item
-        return this.mapResponse(data.result[0]);
-      } catch (error) {
-        lastError = error as Error;
-        // Retry on network/timeout errors
-        if (attempt < 2 && (lastError.name === 'AbortError' || lastError.message.includes('fetch'))) {
-          await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
-          continue;
-        }
-        throw lastError;
-      }
+    if (!data.success || !data.result || data.result.length === 0) {
+      throw new Error(data.message || 'Bungee API returned unsuccessful response');
     }
 
-    throw lastError;
+    const firstResult = data.result[0];
+    if (!firstResult?.originData || !firstResult?.destinationData) {
+      throw new Error('Bungee API returned malformed transaction data');
+    }
+
+    return this.mapResponse(firstResult);
   }
 
   /**

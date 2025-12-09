@@ -1,13 +1,43 @@
 /**
  * @fileoverview Transaction execution and status types
- * @implements PRD Section 6.5 - ExecuteOptions
- * @implements PRD Section 6.7 - ExecuteResult
- * @implements PRD Section 6.8 - TransactionStatus
- * @implements SDK_OVERVIEW.md Section 4 - Transaction Types
  */
 
 import type { ChainSigner } from './signer.js';
 import type { RouteProviderValue } from '../constants/providers.js';
+
+/**
+ * Blockchain transaction log event
+ */
+export interface TransactionEvent {
+  /** Event name or signature */
+  eventName?: string;
+  /** Event topics (indexed parameters) */
+  topics?: string[];
+  /** Event data (non-indexed parameters) */
+  data?: string;
+  /** Log index in block */
+  logIndex?: number;
+  /** Transaction hash this event belongs to */
+  transactionHash?: string;
+  /** Block number where event was emitted */
+  blockNumber?: number;
+  /** Decoded event arguments (if available) */
+  args?: Record<string, unknown>;
+}
+
+/**
+ * Additional transaction metadata from API
+ */
+export interface TransactionMetadata {
+  /** Timestamp of transaction */
+  timestamp?: number;
+  /** Gas used */
+  gasUsed?: string;
+  /** Effective gas price */
+  effectiveGasPrice?: string;
+  /** Additional provider-specific data */
+  [key: string]: unknown;
+}
 
 /**
  * Options for tracking a transaction
@@ -100,7 +130,7 @@ export interface TransactionStatus {
     /** Sender address */
     from: string;
     /** Transaction events */
-    events: any[];
+    events: TransactionEvent[];
     /** Source transaction status */
     status: 'pending' | 'completed' | 'failed';
   };
@@ -126,7 +156,7 @@ export interface TransactionStatus {
     /** Destination transaction hash (null if not yet executed) */
     transactionHash: string | null;
     /** Transaction events */
-    events: any[];
+    events: TransactionEvent[];
     /** Emergency withdrawal available */
     emergency: boolean;
     /** Destination transaction status */
@@ -134,8 +164,8 @@ export interface TransactionStatus {
     /** Bridge-specific state data */
     bridgeState: Record<string, { txHash?: string | null }>;
   };
-  /** Additional data from API */
-  data: any;
+  /** Additional metadata from API */
+  data?: TransactionMetadata;
   /** SDK-computed recovery information */
   recovery?: RecoveryInfo;
   /** SDK-generated warnings */

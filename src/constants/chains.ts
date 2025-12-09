@@ -1,6 +1,5 @@
 /**
  * @fileoverview Chain ID constants
- * @implements SDK_OVERVIEW.md Section 5 - ChainId as const object
  *
  * Using const object instead of enum for tree-shaking optimization
  */

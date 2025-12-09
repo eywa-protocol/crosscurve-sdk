@@ -1,6 +1,5 @@
 /**
  * @fileoverview Token management service
- * @implements PRD Section 7.4 - Chain & Token Data
  * @layer application - Depends ONLY on domain
  */
 
@@ -23,7 +22,6 @@ export class TokenService {
 
   /**
    * Load all supported chains
-   * @implements PRD Section 7.4 - loadChains() with 10 min cache
    */
   async loadChains(): Promise<Chain[]> {
     const cacheKey = 'chains';
@@ -42,7 +40,6 @@ export class TokenService {
 
   /**
    * Load tokens for a specific chain or all chains
-   * @implements PRD Section 7.4 - loadTokens() with 10 min cache
    */
   async loadTokens(chainId?: number): Promise<Token[]> {
     const cacheKey = chainId ? `tokens:${chainId}` : 'tokens:all';

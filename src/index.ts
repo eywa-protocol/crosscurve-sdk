@@ -1,6 +1,5 @@
 /**
  * @fileoverview CrossCurve SDK - Public API
- * @implements PRD Section 1 - Executive Summary
  */
 
 export { CrossCurveSDK } from './sdk.js';

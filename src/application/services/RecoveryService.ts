@@ -1,7 +1,5 @@
 /**
  * @fileoverview Recovery flow detection and execution service
- * @implements PRD Section 3.2 US-2 - Manual Recovery
- * @implements PRD Section 7.10 - Recovery
  * @layer application - Depends ONLY on domain
  */
 
@@ -27,6 +25,7 @@ import {
 } from '../../utils/signature.js';
 import { encodeCalldataFromResponse } from '../../utils/calldata.js';
 import { isNativeToken } from '../../utils/permit.js';
+import { TransactionError } from '../../errors/index.js';
 
 /**
  * Service for handling recovery operations
@@ -41,7 +40,6 @@ export class RecoveryService {
 
   /**
    * Execute recovery operation (detects type automatically)
-   * @implements PRD Section 5.1 - recover()
    */
   async recover(requestId: string, options: RecoveryOptions): Promise<ExecuteResult> {
     const status = await this.trackingService.getTransactionStatus(requestId);
@@ -80,24 +78,10 @@ export class RecoveryService {
       signature,
     });
 
-    const calldata = encodeCalldataFromResponse(txResponse);
-
-    const txRequest: TransactionRequest = {
-      to: txResponse.to,
-      data: calldata,
-      value: txResponse.value,
-      gasLimit: options.gasLimit,
-      gasPrice: options.gasPrice,
-      maxFeePerGas: options.maxFeePerGas,
-      maxPriorityFeePerGas: options.maxPriorityFeePerGas,
-      nonce: options.nonce,
-    };
-
-    const sentTx = await options.signer.sendTransaction(txRequest);
-    await sentTx.wait();
+    const txHash = await this.sendRecoveryTransaction(txResponse, options, 'emergency');
 
     return {
-      transactionHash: sentTx.hash,
+      transactionHash: txHash,
       requestId,
       provider: RouteProvider.CROSS_CURVE,
       status,
@@ -120,24 +104,10 @@ export class RecoveryService {
       signature,
     });
 
-    const calldata = encodeCalldataFromResponse(txResponse);
-
-    const txRequest: TransactionRequest = {
-      to: txResponse.to,
-      data: calldata,
-      value: txResponse.value,
-      gasLimit: options.gasLimit,
-      gasPrice: options.gasPrice,
-      maxFeePerGas: options.maxFeePerGas,
-      maxPriorityFeePerGas: options.maxPriorityFeePerGas,
-      nonce: options.nonce,
-    };
-
-    const sentTx = await options.signer.sendTransaction(txRequest);
-    await sentTx.wait();
+    const txHash = await this.sendRecoveryTransaction(txResponse, options, 'retry');
 
     return {
-      transactionHash: sentTx.hash,
+      transactionHash: txHash,
       requestId,
       provider: RouteProvider.CROSS_CURVE,
       status,
@@ -148,9 +118,9 @@ export class RecoveryService {
    * Execute inconsistency resolution
    *
    * Flow:
-   * 1. GET /inconsistency/{requestId} - get params for remaining amount
-   * 2. POST /routing/scan - get new route for remaining amount
-   * 3. POST /inconsistency - pass routing, returns transaction directly
+   * 1. Validate slippage is provided
+   * 2. Get inconsistency params and find route
+   * 3. Create and sign transaction with approval handling
    * 4. Send transaction
    *
    * @throws Error if slippage is not provided (required per CLAUDE.md - no hardcoded defaults)
@@ -160,33 +130,68 @@ export class RecoveryService {
     status: TransactionStatus,
     options: RecoveryOptions
   ): Promise<ExecuteResult> {
-    // Slippage is required for inconsistency resolution - no hardcoded fallback
-    if (options.slippage === undefined) {
+    const slippage = this.validateInconsistencySlippage(options.slippage);
+    const address = await options.signer.getAddress();
+
+    // Step 1: Get inconsistency params and find route
+    const { params, route } = await this.findInconsistencyRoute(
+      requestId,
+      slippage,
+      address
+    );
+
+    // Emit warning about slippage being used for new route
+    this.emitSlippageWarning(status, slippage, options.onStatusChange);
+
+    // Step 2: Create transaction with approval handling
+    const txResponse = await this.createInconsistencyTransaction(
+      requestId,
+      route,
+      params,
+      address,
+      options.signer
+    );
+
+    // Step 3: Send transaction
+    const txHash = await this.sendRecoveryTransaction(
+      txResponse,
+      options,
+      'inconsistency resolution'
+    );
+
+    return {
+      transactionHash: txHash,
+      requestId,
+      provider: RouteProvider.CROSS_CURVE,
+      status,
+    };
+  }
+
+  /**
+   * Validate that slippage is provided for inconsistency resolution
+   */
+  private validateInconsistencySlippage(slippage: number | undefined): number {
+    if (slippage === undefined) {
       throw new Error(
         'Slippage is required for inconsistency resolution. ' +
         'Provide slippage in RecoveryOptions to proceed.'
       );
     }
+    return slippage;
+  }
 
-    const slippage = options.slippage;
-
-    // Step 1: Get inconsistency params
+  /**
+   * Get inconsistency params and find a route for resolution
+   */
+  private async findInconsistencyRoute(
+    requestId: string,
+    slippage: number,
+    address: string
+  ): Promise<{
+    params: { tokenIn: string; amountIn: string; chainIdIn: number; tokenOut: string; chainIdOut: number };
+    route: { route: Array<{ fromToken?: { address: string } }> };
+  }> {
     const inconsistencyParams = await this.apiClient.getInconsistencyParams(requestId);
-
-    // Emit warning about slippage being used for new route
-    if (options.onStatusChange) {
-      const statusWithWarning: TransactionStatus = {
-        ...status,
-        warning: {
-          type: 'inconsistency_slippage',
-          message: `Using ${slippage}% slippage for inconsistency resolution route`,
-        },
-      };
-      options.onStatusChange(statusWithWarning);
-    }
-
-    // Step 2: Get new routing for remaining amount
-    const address = await options.signer.getAddress();
 
     const routes = await this.apiClient.scanRoutes({
       params: {
@@ -204,28 +209,61 @@ export class RecoveryService {
       throw new Error('No routes available for inconsistency resolution');
     }
 
-    const selectedRoute = routes[0];
+    return {
+      params: inconsistencyParams.params,
+      route: routes[0] as { route: Array<{ fromToken?: { address: string } }> },
+    };
+  }
 
-    // Step 3: Create signature and call /inconsistency to get spender address
+  /**
+   * Emit warning about slippage being used for inconsistency resolution
+   */
+  private emitSlippageWarning(
+    status: TransactionStatus,
+    slippage: number,
+    onStatusChange?: (status: TransactionStatus) => void
+  ): void {
+    if (onStatusChange) {
+      const statusWithWarning: TransactionStatus = {
+        ...status,
+        warning: {
+          type: 'inconsistency_slippage',
+          message: `Using ${slippage}% slippage for inconsistency resolution route`,
+        },
+      };
+      onStatusChange(statusWithWarning);
+    }
+  }
+
+  /**
+   * Create inconsistency transaction with signature and approval handling
+   */
+  private async createInconsistencyTransaction(
+    requestId: string,
+    route: { route: Array<{ fromToken?: { address: string } }> },
+    params: { chainIdIn: number; amountIn: string },
+    address: string,
+    signer: RecoveryOptions['signer']
+  ): Promise<{ to: string; value: string; data?: string; abi?: string; args?: unknown[] }> {
     const message = createInconsistencySignatureMessage(requestId);
-    const signature = await options.signer.signMessage(message);
+    const signature = await signer.signMessage(message);
 
     let txResponse = await this.apiClient.createInconsistency({
       requestId,
       signature,
-      routing: selectedRoute,
+      routing: route as unknown as Parameters<typeof this.apiClient.createInconsistency>[0]['routing'],
     });
 
-    // Step 4: Handle token approval if needed
-    const sourceToken = this.extractSourceToken(selectedRoute);
+    // Handle token approval if needed
+    const sourceToken = this.extractSourceToken(route);
     if (sourceToken && !isNativeToken(sourceToken.address)) {
       const approvalResult = await this.approvalService.handleApproval({
         token: sourceToken,
-        chainId: inconsistencyParams.params.chainIdIn,
+        chainId: params.chainIdIn,
         owner: address,
         spender: txResponse.to,
-        amount: BigInt(inconsistencyParams.params.amountIn),
-        signer: options.signer,
+        amount: BigInt(params.amountIn),
+        signer,
         mode: this.approvalMode,
       });
 
@@ -234,7 +272,7 @@ export class RecoveryService {
         txResponse = await this.apiClient.createInconsistency({
           requestId,
           signature,
-          routing: selectedRoute,
+          routing: route as unknown as Parameters<typeof this.apiClient.createInconsistency>[0]['routing'],
           permit: {
             v: approvalResult.permit.v,
             r: approvalResult.permit.r,
@@ -245,7 +283,18 @@ export class RecoveryService {
       }
     }
 
-    // Step 5: Encode calldata and send transaction
+    return txResponse;
+  }
+
+  /**
+   * Send recovery transaction with error handling
+   * Shared by all recovery methods
+   */
+  private async sendRecoveryTransaction(
+    txResponse: { to: string; value: string; data?: string; abi?: string; args?: unknown[] },
+    options: RecoveryOptions,
+    operationType: string
+  ): Promise<string> {
     const calldata = encodeCalldataFromResponse(txResponse);
 
     const txRequest: TransactionRequest = {
@@ -259,15 +308,38 @@ export class RecoveryService {
       nonce: options.nonce,
     };
 
-    const sentTx = await options.signer.sendTransaction(txRequest);
-    await sentTx.wait();
+    // Send transaction with error handling
+    let sentTx;
+    try {
+      sentTx = await options.signer.sendTransaction(txRequest);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new TransactionError(
+        `Failed to send ${operationType} transaction: ${errorMessage}`,
+        undefined,
+        errorMessage
+      );
+    }
 
-    return {
-      transactionHash: sentTx.hash,
-      requestId,
-      provider: RouteProvider.CROSS_CURVE,
-      status,
-    };
+    // Wait for receipt with error handling
+    try {
+      const receipt = await sentTx.wait();
+      if (!receipt) {
+        throw new Error('Transaction receipt is null - transaction may have been dropped');
+      }
+      if (receipt.status === 0) {
+        throw new Error('Transaction reverted');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new TransactionError(
+        `${operationType.charAt(0).toUpperCase() + operationType.slice(1)} transaction failed: ${errorMessage}`,
+        sentTx.hash,
+        errorMessage
+      );
+    }
+
+    return sentTx.hash;
   }
 
   /**

@@ -1,6 +1,5 @@
 /**
  * @fileoverview HTTP retry logic with exponential backoff
- * @implements PRD Section 7.7 - Timing (retry until 1.5 minutes)
  */
 
 import { NetworkError } from '../errors/index.js';

@@ -1,10 +1,9 @@
 /**
  * @fileoverview API response types
- * @implements PRD Appendix A - API Endpoints
  */
 
 import type { Quote, RouteStep } from '../quote.js';
-import type { TransactionStatus } from '../transaction.js';
+import type { TransactionStatus, TransactionEvent, TransactionMetadata } from '../transaction.js';
 import type { Chain } from '../chain.js';
 import type { Token } from '../token.js';
 
@@ -86,7 +85,7 @@ export interface TransactionGetResponse {
     chainId: number;
     transactionHash: string;
     from: string;
-    events: any[];
+    events: TransactionEvent[];
     status: 'pending' | 'completed' | 'failed';
   };
   oracle: {
@@ -100,12 +99,12 @@ export interface TransactionGetResponse {
   destination: {
     chainId: number;
     transactionHash: string | null;
-    events: any[];
+    events: TransactionEvent[];
     emergency: boolean;
     status: 'pending' | 'in progress' | 'completed' | 'failed' | 'retry';
     bridgeState: Record<string, { txHash?: string | null }>;
   };
-  data: any;
+  data?: TransactionMetadata;
 }
 
 /**

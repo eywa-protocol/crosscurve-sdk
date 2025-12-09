@@ -1,7 +1,5 @@
 /**
  * @fileoverview ChainSigner interface and transaction types
- * @implements PRD Section 6.1 - ChainSigner Interface
- * @implements SDK_OVERVIEW.md Section 4 - ChainSigner Interface
  */
 
 /**

@@ -3,7 +3,6 @@
  *
  * Tests ethers v5 library integration for ChainSigner interface
  * Note: v5 uses _signTypedData (underscore prefix) for typed data signing
- * @implements PRD Section 7.3 - Signer Abstraction
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';

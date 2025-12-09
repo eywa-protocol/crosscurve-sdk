@@ -1,6 +1,5 @@
 /**
  * @fileoverview Validation error class
- * @implements PRD Section 7.9 - Error Handling
  */
 
 import { BaseError } from './BaseError.js';

@@ -1,7 +1,5 @@
 /**
  * @fileoverview Routing scope for Tier 2 API
- * @implements PRD Section 3.2 US-4 - Custom Route Selection
- * @implements PRD Section 5.1 - Tier 2 Flow
  * @layer application - Depends ONLY on domain
  */
 
@@ -18,7 +16,6 @@ export class RoutingScope {
   /**
    * Scan for all available routes
    * POST /routing/scan
-   * @implements PRD US-4
    */
   async scan(request: RoutingScanRequest): Promise<Quote[]> {
     // API returns array directly

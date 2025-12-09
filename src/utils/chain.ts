@@ -1,6 +1,5 @@
 /**
  * @fileoverview Chain identification utilities
- * @implements PRD Section 7.4 - CAIP-2 chain identification support
  */
 
 import type { ChainIdentifier } from '../types/quote.js';

@@ -1,7 +1,5 @@
 /**
  * @fileoverview Chain-related types
- * @implements PRD Section 6.9 - Chain Object
- * @implements SDK_OVERVIEW.md Section 5 - CAIP-2 Chain Identification
  */
 
 /**

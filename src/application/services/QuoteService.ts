@@ -1,7 +1,5 @@
 /**
  * @fileoverview Quote fetching and best route selection service
- * @implements PRD Section 3.2 US-1 - Simple Swap
- * @implements PRD Section 5.1 - Tier 1 Flow
  * @layer application - Depends ONLY on domain
  */
 
@@ -18,7 +16,6 @@ export class QuoteService {
 
   /**
    * Get best quote for a swap
-   * @implements PRD Section 5.1 - getQuote()
    */
   async getQuote(params: GetQuoteParams, maxSlippage?: number): Promise<Quote> {
     validateSlippage(params.slippage, maxSlippage);

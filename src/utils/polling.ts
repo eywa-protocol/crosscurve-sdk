@@ -1,6 +1,5 @@
 /**
  * @fileoverview Exponential backoff polling utility
- * @implements PRD Section 7.7 - Polling interval (10s, +50% backoff)
  */
 
 /**

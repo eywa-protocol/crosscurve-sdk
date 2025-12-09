@@ -9,6 +9,7 @@ import type {
   TransactionResponse,
   TypedDataDomain,
   TypedDataField,
+  CallRequest,
 } from '../../src/types/signer.js';
 
 /**
@@ -26,6 +27,7 @@ export function createMockSigner(
   signMessage: ReturnType<typeof vi.fn>;
   signTypedData: ReturnType<typeof vi.fn>;
   sendTransaction: ReturnType<typeof vi.fn>;
+  call: ReturnType<typeof vi.fn>;
 } {
   const mockTxResponse: TransactionResponse = {
     hash: '0x' + 'a'.repeat(64),
@@ -48,6 +50,9 @@ export function createMockSigner(
     sendTransaction: vi
       .fn<[TransactionRequest], Promise<TransactionResponse>>()
       .mockResolvedValue(mockTxResponse),
+    call: vi
+      .fn<[CallRequest], Promise<string>>()
+      .mockResolvedValue('0x' + '0'.repeat(64)), // Default: returns 0
   };
 }
 

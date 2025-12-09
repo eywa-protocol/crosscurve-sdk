@@ -1,6 +1,5 @@
 /**
  * @fileoverview Main API client implementation
- * @implements PRD Section 4.1 - Infrastructure Layer
  * @layer infrastructure - Implements domain/interfaces/IApiClient
  */
 

@@ -1,7 +1,5 @@
 /**
  * @fileoverview Transaction status tracking service
- * @implements PRD Section 3.2 US-2 - Manual Tracking
- * @implements PRD Section 7.10 - Recovery detection
  * @layer application - Depends ONLY on domain
  *
  * Supports multiple providers:
@@ -133,7 +131,7 @@ export class TrackingService {
           [provider]: { txHash: bridge.destinationTx?.hash },
         },
       },
-      data: bridge.raw,
+      data: bridge.raw as TransactionStatus['data'],
       recovery: undefined, // External bridges don't support CrossCurve recovery
     };
   }
@@ -201,7 +199,6 @@ export class TrackingService {
 
   /**
    * Search transactions by address or hash
-   * @implements PRD Section 5.1 - searchTransactions()
    *
    * Note: Only searches CrossCurve API. External bridges not searchable.
    */
@@ -223,7 +220,6 @@ export class TrackingService {
 
   /**
    * Compute recovery information from transaction status
-   * @implements PRD Section 7.10 - Recovery types
    */
   private computeRecoveryInfo(tx: TransactionStatus | any): RecoveryInfo | undefined {
     if (tx.destination?.emergency) {

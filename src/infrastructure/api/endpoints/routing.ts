@@ -1,6 +1,5 @@
 /**
  * @fileoverview Routing endpoint implementation
- * @implements PRD Appendix A - POST /routing/scan
  */
 
 import type { HttpClient } from '../client/index.js';

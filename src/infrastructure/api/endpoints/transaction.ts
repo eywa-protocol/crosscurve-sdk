@@ -1,6 +1,5 @@
 /**
  * @fileoverview Transaction endpoint implementations
- * @implements PRD Appendix A - Transaction endpoints
  */
 
 import type { HttpClient } from '../client/index.js';

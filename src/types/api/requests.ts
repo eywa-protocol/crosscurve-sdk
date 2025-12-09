@@ -1,6 +1,5 @@
 /**
  * @fileoverview API request payload types
- * @implements PRD Appendix A - API Endpoints
  */
 
 import type { RouteStep, Quote } from '../quote.js';

@@ -2,7 +2,6 @@
  * Unit tests for EthersV6Adapter
  *
  * Tests ethers v6 library integration for ChainSigner interface
- * @implements PRD Section 7.3 - Signer Abstraction
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';

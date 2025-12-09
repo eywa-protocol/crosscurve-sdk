@@ -12,6 +12,7 @@ import type {
   BridgeStatus,
 } from '../../domain/interfaces/index.js';
 import type { RubicStatusResponse, RubicStatus } from './types.js';
+import { fetchWithRetry } from '../utils/fetchWithRetry.js';
 
 const RUBIC_API_BASE = 'https://api-v2.rubic.exchange';
 
@@ -35,41 +36,30 @@ export class RubicTracker implements IBridgeTracker {
       url.searchParams.set('rubicId', params.bridgeId);
     }
 
-    // Retry up to 3 times on transient errors
-    let lastError: Error | undefined;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+    const data = await fetchWithRetry<RubicStatusResponse | { code: number; reason: string }>(url.toString(), {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
 
-        const response = await fetch(url.toString(), {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-          },
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          throw new Error(`Rubic API error: ${response.status} ${response.statusText}`);
-        }
-
-        const data: RubicStatusResponse = await response.json();
-        return this.mapResponse(data);
-      } catch (error) {
-        lastError = error as Error;
-        // Retry on network/timeout errors
-        if (attempt < 2 && (lastError.name === 'AbortError' || lastError.message.includes('fetch'))) {
-          await new Promise(resolve => setTimeout(resolve, 2000 * (attempt + 1)));
-          continue;
-        }
-        throw lastError;
-      }
+    // Check for error response from Rubic API
+    if ('code' in data && 'reason' in data) {
+      // Return pending status if Rubic can't find the transaction yet
+      // This can happen if the transaction was just submitted
+      return {
+        status: 'pending',
+        sourceTx: {
+          hash: params.transactionHash,
+          status: 'pending',
+        },
+        destinationTx: {
+          hash: null,
+          status: 'pending',
+        },
+        raw: data,
+      };
     }
 
-    throw lastError;
+    return this.mapResponse(data);
   }
 
   /**
@@ -79,11 +69,11 @@ export class RubicTracker implements IBridgeTracker {
     return {
       status: this.mapStatus(data.status),
       sourceTx: {
-        hash: data.srcTxHash,
+        hash: data.srcTxHash ?? data.sourceTxHash ?? null,
         status: this.mapSourceStatus(data.status),
       },
       destinationTx: {
-        hash: data.dstTxHash,
+        hash: data.dstTxHash ?? data.destinationTxHash ?? null,
         status: this.mapDestinationStatus(data.status),
       },
       raw: data,
@@ -104,9 +94,11 @@ export class RubicTracker implements IBridgeTracker {
         return 'in_progress';
 
       case 'success':
+      case 'SUCCESS':
         return 'completed';
 
       case 'fail':
+      case 'FAIL':
       case 'cancelled':
         return 'failed';
 
@@ -130,9 +122,11 @@ export class RubicTracker implements IBridgeTracker {
       case 'source_confirmed':
       case 'destination_pending':
       case 'success':
+      case 'SUCCESS':
         return 'completed';
 
       case 'fail':
+      case 'FAIL':
       case 'cancelled':
       case 'revert':
         return 'failed';
@@ -156,9 +150,11 @@ export class RubicTracker implements IBridgeTracker {
         return 'in_progress';
 
       case 'success':
+      case 'SUCCESS':
         return 'completed';
 
       case 'fail':
+      case 'FAIL':
       case 'cancelled':
         return 'failed';
 

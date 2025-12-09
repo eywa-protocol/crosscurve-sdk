@@ -1,6 +1,5 @@
 /**
  * @fileoverview Base error class for all SDK errors
- * @implements PRD Section 7.9 - Error Handling
  */
 
 /**

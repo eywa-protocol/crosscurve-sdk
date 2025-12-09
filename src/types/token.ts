@@ -1,7 +1,5 @@
 /**
  * @fileoverview Token-related types
- * @implements PRD Section 6.10 - Token Object
- * @implements SDK_OVERVIEW.md Section 5 - Token Object
  */
 
 /**

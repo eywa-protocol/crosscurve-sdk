@@ -1,6 +1,5 @@
 /**
  * @fileoverview Recovery endpoint implementations
- * @implements PRD Appendix A - Recovery endpoints
  */
 
 import type { HttpClient } from '../client/index.js';

@@ -1,6 +1,5 @@
 /**
  * @fileoverview Insufficient balance error class
- * @implements PRD Appendix C - Error Classes
  */
 
 import { BaseError } from './BaseError.js';

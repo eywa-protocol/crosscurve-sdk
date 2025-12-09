@@ -1,6 +1,5 @@
 /**
  * @fileoverview Error classes re-exports
- * @implements PRD Appendix C - Error Classes
  */
 
 export { BaseError } from './BaseError.js';

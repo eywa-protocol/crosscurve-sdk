@@ -1,6 +1,5 @@
 /**
  * @fileoverview In-memory cache implementation with TTL
- * @implements PRD Section 7.4 - Chain & Token Data Caching (10 min)
  * @layer infrastructure - Implements domain/interfaces/ICache
  */
 

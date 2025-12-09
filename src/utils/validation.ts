@@ -1,6 +1,5 @@
 /**
  * @fileoverview Validation utilities
- * @implements PRD Section 7.6 - Validation
  */
 
 import { ValidationError } from '../errors/index.js';

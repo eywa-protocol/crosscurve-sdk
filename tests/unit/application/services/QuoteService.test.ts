@@ -1,6 +1,5 @@
 /**
  * @fileoverview QuoteService unit tests
- * @implements PRD Section 3.2 US-1 - Simple Swap
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';

@@ -114,7 +114,7 @@ describe('RubicTracker', () => {
     });
 
     await expect(tracker.track({ transactionHash: '0xabc123' })).rejects.toThrow(
-      'Rubic API error: 500 Internal Server Error'
+      'HTTP 500: Internal Server Error'
     );
   });
 });
@@ -253,7 +253,7 @@ describe('BungeeTracker', () => {
     });
 
     await expect(tracker.track({ transactionHash: '0xabc123' })).rejects.toThrow(
-      'Bungee API error: 404 Not Found'
+      'HTTP 404: Not Found'
     );
   });
 });

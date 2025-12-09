@@ -15,6 +15,8 @@ export type {
   TransactionStatus,
   TransactionWarning,
   RecoveryInfo,
+  TransactionEvent,
+  TransactionMetadata,
 } from './transaction.js';
 export type { RecoveryOptions, RecoveryType } from './recovery.js';
 

@@ -11,6 +11,7 @@ import { mnemonicToAccount } from 'viem/accounts';
 import { CrossCurveSDK } from '../../src/sdk.js';
 import { ViemAdapter } from '../../src/infrastructure/adapters/ViemAdapter.js';
 import { TEST_CONFIG, TEST_CHAINS } from '../setup.js';
+import { RouteProvider } from '../../src/constants/providers.js';
 
 const shouldRun = process.env.ENABLE_E2E_SWAP === 'true' && !!TEST_CONFIG.testMnemonic;
 const describeOrSkip = shouldRun ? describe : describe.skip;
@@ -61,6 +62,7 @@ describeOrSkip('ETH to OP Token Swap', () => {
       amount,
       slippage: 1.0,
       sender: account.address,
+      providers: [RouteProvider.BUNGEE],
     });
 
     console.log('Quote:', {

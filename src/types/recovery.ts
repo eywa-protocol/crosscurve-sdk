@@ -1,7 +1,5 @@
 /**
  * @fileoverview Recovery-related types
- * @implements PRD Section 6.6 - RecoveryOptions
- * @implements SDK_OVERVIEW.md Section 5 - Recovery Types
  */
 
 import type { ChainSigner } from './signer.js';

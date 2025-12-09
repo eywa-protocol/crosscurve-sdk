@@ -1,7 +1,5 @@
 /**
  * @fileoverview Transaction scope for Tier 2 API
- * @implements PRD Section 3.2 US-5 - Manual Transaction Building
- * @implements PRD Section 5.1 - Tier 2 Flow
  * @layer application - Depends ONLY on domain
  */
 

@@ -1,8 +1,5 @@
 /**
  * @fileoverview Quote and routing types
- * @implements PRD Section 6.3 - GetQuote Parameters
- * @implements PRD Section 6.4 - Quote Object
- * @implements SDK_OVERVIEW.md Section 4 - Quote Types
  */
 
 import type { RouteProviderValue } from '../constants/providers.js';

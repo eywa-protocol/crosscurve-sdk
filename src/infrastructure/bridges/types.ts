@@ -10,10 +10,16 @@
 export interface RubicStatusResponse {
   /** Transaction status */
   status: RubicStatus;
+  /** Rubic ID */
+  rubicId?: string;
   /** Source transaction hash */
-  srcTxHash: string;
+  srcTxHash?: string;
+  /** Source transaction hash (alternative field name) */
+  sourceTxHash?: string;
   /** Destination transaction hash (null if not yet executed) */
-  dstTxHash: string | null;
+  dstTxHash?: string | null;
+  /** Destination transaction hash (alternative field name) */
+  destinationTxHash?: string | null;
   /** Source chain ID */
   fromBlockchain: string;
   /** Destination chain ID */
@@ -51,7 +57,9 @@ export type RubicStatus =
   | 'source_confirmed'
   | 'destination_pending'
   | 'success'
+  | 'SUCCESS'
   | 'fail'
+  | 'FAIL'
   | 'cancelled'
   | 'revert'
   | 'unknown';

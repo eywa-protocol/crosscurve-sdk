@@ -1,6 +1,5 @@
 /**
  * @fileoverview ExecuteService unit tests
- * @implements PRD Section 5.1 - Tier 1 Flow
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';

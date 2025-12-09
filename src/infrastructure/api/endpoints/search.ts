@@ -1,6 +1,5 @@
 /**
  * @fileoverview Search endpoint implementation
- * @implements PRD Appendix A - GET /search
  */
 
 import type { HttpClient } from '../client/index.js';

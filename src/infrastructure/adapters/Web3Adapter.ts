@@ -1,6 +1,5 @@
 /**
  * @fileoverview Web3.js library adapter
- * @implements PRD Section 7.3 - Signer Abstraction
  * @layer infrastructure - Implements domain ChainSigner interface
  */
 

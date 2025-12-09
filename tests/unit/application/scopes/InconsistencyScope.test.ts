@@ -1,8 +1,6 @@
 /**
  * Unit tests for InconsistencyScope (Tier 2 API)
  *
- * @implements PRD Section 3.2 US-8 - Inconsistency Resolution
- * @implements PRD Section 5.1 - Tier 2 Flow
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';

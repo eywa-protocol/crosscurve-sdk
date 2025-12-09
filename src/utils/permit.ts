@@ -1,6 +1,5 @@
 /**
  * @fileoverview EIP-2612 Permit utilities
- * @implements PRD Section 7.5 - Token Approvals
  *
  * Supports gasless token approvals via EIP-2612 permit signatures
  */

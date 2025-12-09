@@ -1,6 +1,5 @@
 /**
  * @fileoverview Core HTTP client using fetch API
- * @implements PRD Section 7.7 - HTTP request timeout (1.5 minutes)
  */
 
 import { ApiError, NetworkError } from '../errors/index.js';

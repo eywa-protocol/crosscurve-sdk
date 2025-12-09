@@ -1,7 +1,5 @@
 /**
  * @fileoverview SDK configuration types
- * @implements PRD Section 6.2 - SDK Config
- * @implements SDK_OVERVIEW.md Section 4 - SDK Config
  */
 
 /**

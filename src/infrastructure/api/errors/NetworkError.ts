@@ -1,6 +1,5 @@
 /**
  * @fileoverview Network-specific error class
- * @implements PRD Section 7.9 - Error Handling
  */
 
 import { ApiError } from './ApiError.js';
