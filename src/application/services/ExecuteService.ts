@@ -5,13 +5,14 @@
  * @layer application - Depends ONLY on domain
  */
 
-import type { IApiClient } from '../../domain/interfaces/index.js';
+import type { IApiClient, ITrackingService, IRecoveryService } from '../../domain/interfaces/index.js';
 import type {
   Quote,
   ExecuteOptions,
   ExecuteResult,
   TransactionStatus,
   TransactionRequest,
+  TrackingOptions,
 } from '../../types/index.js';
 import { RouteProvider, type RouteProviderValue } from '../../constants/providers.js';
 import { pollWithCallback } from '../../utils/polling.js';
@@ -27,26 +28,27 @@ import { encodeCalldataFromResponse } from '../../utils/calldata.js';
  */
 const COMPLEX_OP_PROCESSED_TOPIC = '0x830adbcf80ee865e0f0883ad52e813fdbf061b0216b724694a2b4e06708d243c';
 
+/** Default polling config for external bridges (slower than CrossCurve) */
+const EXTERNAL_BRIDGE_POLLING = {
+  initialInterval: 15000,   // 15 seconds
+  backoffMultiplier: 1.3,
+  maxInterval: 60000,       // 60 seconds
+  timeout: 30 * 60 * 1000,  // 30 minutes
+};
+
 /**
  * Service for executing swap quotes
  */
 export class ExecuteService {
   constructor(
     private readonly apiClient: IApiClient,
-    private readonly trackingService: any,
-    private readonly recoveryService: any
+    private readonly trackingService: ITrackingService,
+    private readonly recoveryService: IRecoveryService
   ) {}
 
   /**
    * Execute a quote
    * @implements PRD Section 5.1 - executeQuote()
-   *
-   * Flow:
-   * 1. Call /tx/create with the quote (includes signature)
-   * 2. Encode calldata from abi + args (workaround for buildCalldata bug)
-   * 3. Send transaction to CrossCurve Router
-   * 4. Extract requestId from ComplexOpProcessed event
-   * 5. Track via /transaction/{requestId}
    */
   async executeQuote(quote: Quote, options: ExecuteOptions): Promise<ExecuteResult> {
     const address = await options.signer.getAddress();
@@ -54,8 +56,6 @@ export class ExecuteService {
 
     validateAddress(recipient, 'recipient');
 
-    // Step 1: Create transaction via /tx/create
-    // Use buildCalldata: false due to API bug with buildCalldata: true
     const txData = await this.apiClient.createTransaction({
       from: address,
       recipient,
@@ -63,10 +63,8 @@ export class ExecuteService {
       buildCalldata: false,
     });
 
-    // Step 2: Encode calldata from abi + args
     const calldata = encodeCalldataFromResponse(txData);
 
-    // Step 3: Send transaction to CrossCurve Router
     const txRequest: TransactionRequest = {
       to: txData.to,
       data: calldata,
@@ -81,24 +79,10 @@ export class ExecuteService {
     const sentTx = await options.signer.sendTransaction(txRequest);
     const receipt = await sentTx.wait();
 
-    // Step 4: Determine provider from route
     const provider = this.extractProvider(quote);
-
-    // Step 5: Extract requestId from ComplexOpProcessed event (CrossCurve native only)
     const requestId = this.extractRequestIdFromLogs(receipt);
-
-    // Step 6: Extract bridge-specific ID from quote (e.g., rubicId)
     const bridgeId = this.extractBridgeId(quote, provider);
 
-    if (!requestId) {
-      return {
-        transactionHash: sentTx.hash,
-        provider,
-        bridgeId,
-      };
-    }
-
-    // Step 7: Track and recover if needed (CrossCurve native routes only)
     if (!options.autoRecover) {
       return {
         transactionHash: sentTx.hash,
@@ -108,19 +92,74 @@ export class ExecuteService {
       };
     }
 
-    const finalStatus = await this.pollAndRecover(
-      requestId,
-      quote,
-      options
-    );
+    return this.trackByProvider(sentTx.hash, provider, requestId, bridgeId, quote, options);
+  }
 
-    return {
-      transactionHash: sentTx.hash,
-      requestId,
+  private async trackByProvider(
+    txHash: string,
+    provider: RouteProviderValue,
+    requestId: string | undefined,
+    bridgeId: string | undefined,
+    quote: Quote,
+    options: ExecuteOptions
+  ): Promise<ExecuteResult> {
+    switch (provider) {
+      case RouteProvider.CROSS_CURVE: {
+        if (!requestId) {
+          throw new Error('CrossCurve transaction missing requestId from ComplexOpProcessed event');
+        }
+        const status = await this.pollAndRecover(requestId, quote, options);
+        return { transactionHash: txHash, requestId, provider, status };
+      }
+
+      case RouteProvider.RUBIC:
+      case RouteProvider.BUNGEE: {
+        const chainId = this.getSourceChainId(quote);
+        const status = await this.pollExternalBridge(txHash, provider, bridgeId, chainId, options);
+        return { transactionHash: txHash, provider, bridgeId, status };
+      }
+    }
+  }
+
+  /**
+   * Get source chain ID from quote
+   */
+  private getSourceChainId(quote: Quote): number | undefined {
+    return quote.route[0]?.fromChainId ?? quote.txs[0]?.chainId;
+  }
+
+  /**
+   * Poll external bridge status (Rubic/Bungee)
+   * No recovery available - just poll until completion or failure
+   */
+  private async pollExternalBridge(
+    txHash: string,
+    provider: RouteProviderValue,
+    bridgeId: string | undefined,
+    chainId: number | undefined,
+    options: ExecuteOptions
+  ): Promise<TransactionStatus> {
+    const trackingOptions: TrackingOptions = {
       provider,
       bridgeId,
-      status: finalStatus,
+      chainId,
     };
+
+    return pollWithCallback(
+      async () => {
+        return this.trackingService.getTransactionStatus(txHash, trackingOptions);
+      },
+      (status) => {
+        // Continue polling while in progress or pending
+        return status.status === 'in progress';
+      },
+      (status) => {
+        if (options.onStatusChange) {
+          options.onStatusChange(status);
+        }
+      },
+      EXTERNAL_BRIDGE_POLLING
+    );
   }
 
   /**
@@ -286,8 +325,10 @@ export class ExecuteService {
         if (currentRequestId && currentRequestId !== '0x' + '0'.repeat(64)) {
           return currentRequestId;
         }
-      } catch {
-        // Continue to next log
+      } catch (error) {
+        // Log parsing failed for this entry, continue to next log
+        // This can happen with malformed logs or unexpected data formats
+        console.debug('Failed to parse ComplexOpProcessed log:', error);
       }
     }
 

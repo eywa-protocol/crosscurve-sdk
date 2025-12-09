@@ -1,0 +1,13 @@
+/**
+ * @fileoverview Error classes re-exports
+ * @implements PRD Appendix C - Error Classes
+ */
+
+export { BaseError } from './BaseError.js';
+export { ValidationError } from './ValidationError.js';
+export { InvalidQuoteError } from './InvalidQuoteError.js';
+export { InsufficientBalanceError } from './InsufficientBalanceError.js';
+export { SlippageExceededError } from './SlippageExceededError.js';
+export { TransactionError } from './TransactionError.js';
+export { RecoveryUnavailableError } from './RecoveryUnavailableError.js';
+export { TimeoutError } from './TimeoutError.js';

@@ -7,7 +7,7 @@ export type { CrossCurveConfig, SDKConfig } from './config.js';
 export type { ChainSigner, TransactionRequest, TransactionResponse, TransactionReceipt } from './signer.js';
 export type { Chain } from './chain.js';
 export type { Token, TokenReference } from './token.js';
-export type { GetQuoteParams, Quote, RouteStep, TransactionInfo, TxData } from './quote.js';
+export type { GetQuoteParams, Quote, RouteStep, RouteStepToken, TransactionInfo, TxData } from './quote.js';
 export type {
   TrackingOptions,
   ExecuteOptions,

@@ -3,7 +3,7 @@
  * @implements PRD Section 7.6 - Validation
  */
 
-import { ValidationError } from '../infrastructure/api/errors/index.js';
+import { ValidationError } from '../errors/index.js';
 
 /**
  * Validate slippage value

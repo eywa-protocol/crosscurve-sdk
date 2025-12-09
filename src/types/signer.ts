@@ -49,6 +49,35 @@ export interface TransactionResponse {
 }
 
 /**
+ * EIP-712 typed data for signing
+ */
+export interface TypedDataDomain {
+  name?: string;
+  version?: string;
+  chainId?: number;
+  verifyingContract?: string;
+  salt?: string;
+}
+
+/**
+ * EIP-712 typed data parameter
+ */
+export interface TypedDataField {
+  name: string;
+  type: string;
+}
+
+/**
+ * Call request for read-only contract calls
+ */
+export interface CallRequest {
+  /** Target contract address */
+  to: string;
+  /** Encoded call data */
+  data: string;
+}
+
+/**
  * Signer abstraction for multi-library support
  * Implemented by ViemAdapter, EthersV6Adapter, EthersV5Adapter, Web3Adapter
  */
@@ -57,6 +86,20 @@ export interface ChainSigner {
   getAddress(): Promise<string>;
   /** Sign a message with the signer's private key */
   signMessage(message: Uint8Array): Promise<string>;
+  /**
+   * Sign EIP-712 typed data (required for EIP-2612 permit)
+   * @param domain EIP-712 domain separator
+   * @param types Type definitions (excluding EIP712Domain)
+   * @param value The typed data to sign
+   * @returns Signature as hex string
+   */
+  signTypedData(
+    domain: TypedDataDomain,
+    types: Record<string, TypedDataField[]>,
+    value: Record<string, unknown>
+  ): Promise<string>;
   /** Send a transaction */
   sendTransaction(tx: TransactionRequest): Promise<TransactionResponse>;
+  /** Execute a read-only contract call */
+  call(request: CallRequest): Promise<string>;
 }

@@ -141,11 +141,14 @@ API_BASE_URL=https://api.crosscurve.fi
 TEST_WALLET=0x750035FeeAd93D8e56656d0E1f398fBa3b3866D5
 ```
 
-### Test Wallet
-- **Address**: `0x750035FeeAd93D8e56656d0E1f398fBa3b3866D5`
-- **Mnemonic**: `YOUR_TEST_MNEMONIC_HERE`
-- **Required Balance**: ~0.005 ETH on Arbitrum (chainId 42161)
-- **Supported Chains**: Arbitrum (42161), Optimism (10), Avalanche (43114), BSC (56), Sepolia (11155111)
+### Test Wallet Setup
+1. Copy `.env.test.example` to `.env.test`
+2. Set `TEST_MNEMONIC` to your test wallet mnemonic
+3. Ensure test wallet has ~0.005 ETH on Arbitrum (chainId 42161)
+
+**Supported Chains**: Arbitrum (42161), Optimism (10), Avalanche (43114), BSC (56), Sepolia (11155111)
+
+**Security Note**: Never commit wallet mnemonics to version control. The `.env.test` file is in `.gitignore`.
 
 ### Timeouts
 - Default test timeout: 30 seconds

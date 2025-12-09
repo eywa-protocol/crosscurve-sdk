@@ -22,7 +22,8 @@ import { RouteProvider } from '../../src/constants/providers.js';
 import { TEST_CONFIG, TEST_CHAINS } from '../setup.js';
 
 // Skip these tests by default
-const shouldRunSwapTests = process.env.ENABLE_E2E_SWAP === 'true';
+// Requires TEST_MNEMONIC environment variable for wallet access
+const shouldRunSwapTests = process.env.ENABLE_E2E_SWAP === 'true' && !!TEST_CONFIG.testMnemonic;
 const describeOrSkip = shouldRunSwapTests ? describe : describe.skip;
 
 describeOrSkip('E2E Swap Tests (REAL TRANSACTIONS)', () => {
@@ -40,7 +41,10 @@ describeOrSkip('E2E Swap Tests (REAL TRANSACTIONS)', () => {
 
     await sdk.init();
 
-    // Create wallet from mnemonic
+    // Create wallet from mnemonic (must be provided via TEST_MNEMONIC env var)
+    if (!TEST_CONFIG.testMnemonic) {
+      throw new Error('TEST_MNEMONIC environment variable is required for E2E swap tests');
+    }
     account = mnemonicToAccount(TEST_CONFIG.testMnemonic);
 
     // Create wallet client for Arbitrum (sending transactions)
@@ -525,11 +529,11 @@ describe('E2E Swap Tests Info', () => {
       console.log('E2E SWAP TESTS ARE SKIPPED BY DEFAULT');
       console.log('===========================================');
       console.log('To run real swap tests with actual transactions:');
-      console.log('1. Ensure test wallet has ~0.005 ETH on Arbitrum');
-      console.log('2. Set environment variable: ENABLE_E2E_SWAP=true');
-      console.log('3. Run: ENABLE_E2E_SWAP=true npm test -- tests/e2e/swap.test.ts');
+      console.log('1. Copy .env.test.example to .env.test');
+      console.log('2. Set TEST_MNEMONIC in .env.test');
+      console.log('3. Ensure test wallet has ~0.005 ETH on Arbitrum');
+      console.log('4. Run: ENABLE_E2E_SWAP=true npm test -- tests/e2e/swap.test.ts');
       console.log('\nTest wallet: ' + TEST_CONFIG.testWalletAddress);
-      console.log('Test mnemonic: ' + TEST_CONFIG.testMnemonic);
       console.log('===========================================\n');
     }
     expect(true).toBe(true);

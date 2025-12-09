@@ -4,7 +4,14 @@
  * @layer infrastructure - Implements domain ChainSigner interface
  */
 
-import type { ChainSigner, TransactionRequest, TransactionResponse } from '../../types/signer.js';
+import type {
+  ChainSigner,
+  TransactionRequest,
+  TransactionResponse,
+  TypedDataDomain,
+  TypedDataField,
+  CallRequest,
+} from '../../types/signer.js';
 
 /**
  * Ethers v5 adapter for ChainSigner interface
@@ -19,6 +26,15 @@ export class EthersV5Adapter implements ChainSigner {
 
   async signMessage(message: Uint8Array): Promise<string> {
     return await this.signer.signMessage(message);
+  }
+
+  async signTypedData(
+    domain: TypedDataDomain,
+    types: Record<string, TypedDataField[]>,
+    value: Record<string, unknown>
+  ): Promise<string> {
+    // Ethers v5 uses _signTypedData method
+    return await this.signer._signTypedData(domain, types, value);
   }
 
   async sendTransaction(tx: TransactionRequest): Promise<TransactionResponse> {
@@ -44,5 +60,13 @@ export class EthersV5Adapter implements ChainSigner {
         };
       },
     };
+  }
+
+  async call(request: CallRequest): Promise<string> {
+    const result = await this.signer.provider?.call({
+      to: request.to,
+      data: request.data,
+    });
+    return result ?? '0x';
   }
 }

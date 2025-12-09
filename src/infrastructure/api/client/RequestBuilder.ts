@@ -47,12 +47,12 @@ export class RequestBuilder {
   }
 
   /**
-   * Build authorization headers
+   * Build partner/integrator headers for fee sharing
    */
-  static buildAuthHeaders(apiKey?: string): Record<string, string> {
+  static buildPartnerHeaders(apiKey?: string): Record<string, string> {
     if (!apiKey) return {};
     return {
-      'Authorization': `Bearer ${apiKey}`,
+      'X-Integrator-Id': apiKey,
     };
   }
 }

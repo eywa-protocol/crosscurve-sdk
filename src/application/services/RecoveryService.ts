@@ -5,7 +5,7 @@
  * @layer application - Depends ONLY on domain
  */
 
-import type { IApiClient } from '../../domain/interfaces/index.js';
+import type { IApiClient, ITrackingService } from '../../domain/interfaces/index.js';
 import type {
   RecoveryOptions,
   ExecuteResult,
@@ -27,7 +27,7 @@ import { encodeCalldataFromResponse } from '../../utils/calldata.js';
 export class RecoveryService {
   constructor(
     private readonly apiClient: IApiClient,
-    private readonly trackingService: any
+    private readonly trackingService: ITrackingService
   ) {}
 
   /**
@@ -143,17 +143,40 @@ export class RecoveryService {
    * 2. POST /routing/scan - get new route for remaining amount
    * 3. POST /inconsistency - pass routing, returns transaction directly
    * 4. Send transaction
+   *
+   * @throws Error if slippage is not provided (required per CLAUDE.md - no hardcoded defaults)
    */
   private async executeInconsistency(
     requestId: string,
     status: TransactionStatus,
     options: RecoveryOptions
   ): Promise<ExecuteResult> {
+    // Slippage is required for inconsistency resolution - no hardcoded fallback
+    if (options.slippage === undefined) {
+      throw new Error(
+        'Slippage is required for inconsistency resolution. ' +
+        'Provide slippage in RecoveryOptions to proceed.'
+      );
+    }
+
+    const slippage = options.slippage;
+
     // Step 1: Get inconsistency params
     const inconsistencyParams = await this.apiClient.getInconsistencyParams(requestId);
 
+    // Emit warning about slippage being used for new route
+    if (options.onStatusChange) {
+      const statusWithWarning: TransactionStatus = {
+        ...status,
+        warning: {
+          type: 'inconsistency_slippage',
+          message: `Using ${slippage}% slippage for inconsistency resolution route`,
+        },
+      };
+      options.onStatusChange(statusWithWarning);
+    }
+
     // Step 2: Get new routing for remaining amount
-    const slippage = options.slippage ?? 0.5;
     const address = await options.signer.getAddress();
 
     const routes = await this.apiClient.scanRoutes({

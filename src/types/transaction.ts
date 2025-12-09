@@ -17,6 +17,8 @@ export interface TrackingOptions {
   provider?: RouteProviderValue;
   /** Bridge-specific identifier (e.g., rubicId) */
   bridgeId?: string;
+  /** Source chain ID */
+  chainId?: number;
 }
 
 /**

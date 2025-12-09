@@ -10,3 +10,5 @@ export type {
   BridgeTrackingParams,
   BridgeStatus,
 } from './IBridgeTracker.js';
+export type { ITrackingService } from './ITrackingService.js';
+export type { IRecoveryService } from './IRecoveryService.js';

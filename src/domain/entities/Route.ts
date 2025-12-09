@@ -3,7 +3,7 @@
  * @layer domain - ZERO external dependencies
  */
 
-import type { RouteStep } from '../../types/quote.js';
+import type { RouteStep, RouteStepToken } from '../../types/quote.js';
 
 /**
  * Route entity representing a single step in routing path
@@ -11,15 +11,28 @@ import type { RouteStep } from '../../types/quote.js';
  */
 export class RouteEntity implements RouteStep {
   readonly type: string;
-  readonly chainId: number;
-  readonly params: Record<string, unknown>;
+  readonly fromChainId: number;
+  readonly toChainId: number;
+  readonly fromToken: RouteStepToken;
+  readonly toToken: RouteStepToken;
+  readonly params?: Record<string, unknown>;
   readonly quote?: RouteStep['quote'];
 
   constructor(data: RouteStep) {
     this.type = data.type;
-    this.chainId = data.chainId;
+    this.fromChainId = data.fromChainId;
+    this.toChainId = data.toChainId;
+    this.fromToken = { ...data.fromToken };
+    this.toToken = { ...data.toToken };
     this.params = data.params;
     this.quote = data.quote;
+  }
+
+  /**
+   * Check if this step is cross-chain
+   */
+  isCrossChain(): boolean {
+    return this.fromChainId !== this.toChainId;
   }
 
   /**

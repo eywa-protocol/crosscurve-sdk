@@ -8,6 +8,7 @@
 import type { IApiClient } from '../../domain/interfaces/index.js';
 import type { GetQuoteParams, Quote } from '../../types/index.js';
 import { validateSlippage, validateAmount, validateAddress } from '../../utils/validation.js';
+import { resolveChainId } from '../../utils/chain.js';
 
 /**
  * Service for fetching quotes and selecting best routes
@@ -30,14 +31,18 @@ export class QuoteService {
     validateAddress(params.fromToken, 'fromToken');
     validateAddress(params.toToken, 'toToken');
 
+    // Resolve chain identifiers (supports both numeric IDs and CAIP-2 format)
+    const chainIdIn = resolveChainId(params.fromChain);
+    const chainIdOut = resolveChainId(params.toChain);
+
     // API returns array directly
     const routes = await this.apiClient.scanRoutes({
       params: {
         tokenIn: params.fromToken,
         amountIn: params.amount,
-        chainIdIn: params.fromChain,
+        chainIdIn,
         tokenOut: params.toToken,
-        chainIdOut: params.toChain,
+        chainIdOut,
       },
       slippage: params.slippage,
       from: params.sender,

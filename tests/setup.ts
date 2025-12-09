@@ -20,10 +20,11 @@ afterEach(() => {
 });
 
 // Test environment configuration
+// Mnemonic must be provided via environment variable for E2E swap tests
 export const TEST_CONFIG = {
-  apiBaseUrl: 'https://api.crosscurve.fi',
-  testWalletAddress: '0x750035FeeAd93D8e56656d0E1f398fBa3b3866D5',
-  testMnemonic: 'YOUR_TEST_MNEMONIC_HERE',
+  apiBaseUrl: process.env.TEST_API_BASE_URL || 'https://api.crosscurve.fi',
+  testWalletAddress: process.env.TEST_WALLET_ADDRESS || '0x750035FeeAd93D8e56656d0E1f398fBa3b3866D5',
+  testMnemonic: process.env.TEST_MNEMONIC,
 };
 
 // Supported test chains

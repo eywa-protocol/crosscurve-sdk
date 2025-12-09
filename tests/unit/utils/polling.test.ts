@@ -179,8 +179,6 @@ describe('polling utilities', () => {
 
       const promise = poll(fn, shouldContinue, { initialInterval: 1000 });
 
-      await vi.advanceTimersByTimeAsync(0);
-
       await expect(promise).rejects.toThrow('Network error');
     });
   });

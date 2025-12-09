@@ -34,22 +34,30 @@ export class QuoteEntity implements IQuote {
    */
   isCrossChain(): boolean {
     if (this.route.length === 0) return false;
-    const firstChainId = this.route[0].chainId;
-    return this.route.some((step) => step.chainId !== firstChainId);
+    const firstStep = this.route[0];
+    return firstStep.fromChainId !== firstStep.toChainId;
+  }
+
+  /**
+   * Check if this is a same-chain swap
+   */
+  isSameChain(): boolean {
+    return !this.isCrossChain();
   }
 
   /**
    * Get source chain ID
    */
   getSourceChainId(): number {
-    return this.route[0]?.chainId ?? 0;
+    return this.route[0]?.fromChainId ?? 0;
   }
 
   /**
    * Get destination chain ID
    */
   getDestinationChainId(): number {
-    return this.route[this.route.length - 1]?.chainId ?? 0;
+    const lastStep = this.route[this.route.length - 1];
+    return lastStep?.toChainId ?? 0;
   }
 
   /**

@@ -19,7 +19,7 @@ import type {
   RecoveryInfo,
   TrackingOptions,
 } from '../../types/index.js';
-import { RouteProvider, type RouteProviderValue } from '../../constants/providers.js';
+import { RouteProvider, type RouteProviderValue, ALL_PROVIDERS } from '../../constants/providers.js';
 
 /**
  * Service for tracking transaction status across multiple providers
@@ -32,8 +32,21 @@ export class TrackingService {
     bridgeTrackers: IBridgeTracker[] = []
   ) {
     this.bridgeTrackers = new Map(
-      bridgeTrackers.map((tracker) => [tracker.provider as RouteProviderValue, tracker])
+      bridgeTrackers.map((tracker) => [this.validateProvider(tracker.provider), tracker])
     );
+  }
+
+  /**
+   * Validate that a provider string is a valid RouteProviderValue
+   * @throws Error if provider is not valid
+   */
+  private validateProvider(provider: string): RouteProviderValue {
+    if (!ALL_PROVIDERS.includes(provider as RouteProviderValue)) {
+      throw new Error(
+        `Invalid bridge provider: ${provider}. Valid providers: ${ALL_PROVIDERS.join(', ')}`
+      );
+    }
+    return provider as RouteProviderValue;
   }
 
   /**
@@ -51,12 +64,10 @@ export class TrackingService {
   ): Promise<TransactionStatus> {
     const provider = options?.provider;
 
-    // CrossCurve native routes: use API with requestId
     if (!provider || provider === RouteProvider.CROSS_CURVE) {
       return this.trackViaCrossCurveApi(identifier);
     }
 
-    // External bridges: use bridge tracker
     const tracker = this.bridgeTrackers.get(provider);
     if (!tracker) {
       throw new Error(

@@ -75,9 +75,23 @@ export class CrossCurveSDK {
   public readonly tracking: TrackingScope;
   public readonly inconsistency: InconsistencyScope;
 
-  public chains: Chain[] = [];
-  public tokens: Map<number, Token[]> = new Map();
+  private _chains: Chain[] = [];
+  private _tokens: Map<number, Token[]> = new Map();
   private allTokens: Token[] = [];
+
+  /**
+   * Loaded chains (readonly)
+   */
+  get chains(): readonly Chain[] {
+    return this._chains;
+  }
+
+  /**
+   * Loaded tokens by chain ID (readonly)
+   */
+  get tokens(): ReadonlyMap<number, readonly Token[]> {
+    return this._tokens as ReadonlyMap<number, readonly Token[]>;
+  }
 
   /**
    * Create a new CrossCurve SDK instance
@@ -126,8 +140,8 @@ export class CrossCurveSDK {
    * @implements PRD Section 7.4 - loadChains()
    */
   async loadChains(): Promise<Chain[]> {
-    this.chains = await this.tokenService.loadChains();
-    return this.chains;
+    this._chains = await this.tokenService.loadChains();
+    return this._chains;
   }
 
   /**
@@ -140,14 +154,14 @@ export class CrossCurveSDK {
     if (chainId === undefined) {
       this.allTokens = tokens;
 
-      this.tokens.clear();
+      this._tokens.clear();
       tokens.forEach((token) => {
-        const chainTokens = this.tokens.get(token.chainId) ?? [];
+        const chainTokens = this._tokens.get(token.chainId) ?? [];
         chainTokens.push(token);
-        this.tokens.set(token.chainId, chainTokens);
+        this._tokens.set(token.chainId, chainTokens);
       });
     } else {
-      this.tokens.set(chainId, tokens);
+      this._tokens.set(chainId, tokens);
 
       const existing = this.allTokens.filter((t) => t.chainId !== chainId);
       this.allTokens = [...existing, ...tokens];
@@ -242,6 +256,6 @@ export class CrossCurveSDK {
    * @implements PRD Section 7.4 - Accessors
    */
   getChainByCaip2(caip2: string): Chain | undefined {
-    return this.tokenService.getChainByCaip2(this.chains, caip2);
+    return this.tokenService.getChainByCaip2(this._chains, caip2);
   }
 }

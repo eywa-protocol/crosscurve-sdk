@@ -13,20 +13,47 @@ describe('ViemAdapter', () => {
   const testSignature = '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12';
   const testTxHash = '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab';
 
+  // Mock account object (similar to what privateKeyToAccount returns)
+  const mockAccount = { address: testAddress };
+
+  // Create mock clients for each test
+  const createMockWalletClient = () => ({
+    signMessage: vi.fn(),
+    signTypedData: vi.fn(),
+    sendTransaction: vi.fn(),
+  });
+
+  const createMockPublicClient = () => ({
+    waitForTransactionReceipt: vi.fn(),
+  });
+
   describe('getAddress', () => {
-    it('should return the configured address', async () => {
-      const mockWalletClient = {};
-      const adapter = new ViemAdapter(mockWalletClient, testAddress);
+    it('should return the configured address from account object', async () => {
+      const mockWalletClient = createMockWalletClient();
+      const mockPublicClient = createMockPublicClient();
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
 
       const address = await adapter.getAddress();
 
       expect(address).toBe(testAddress);
     });
 
-    it('should return address in lowercase format', async () => {
-      const mockWalletClient = {};
+    it('should return address when account is a string', async () => {
+      const mockWalletClient = createMockWalletClient();
+      const mockPublicClient = createMockPublicClient();
+      // Account can also be a string address (for legacy compatibility)
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, testAddress);
+
+      const address = await adapter.getAddress();
+
+      expect(address).toBe(testAddress);
+    });
+
+    it('should return address in original format', async () => {
+      const mockWalletClient = createMockWalletClient();
+      const mockPublicClient = createMockPublicClient();
       const upperCaseAddress = '0x750035FEEAD93D8E56656D0E1F398FBA3B3866D5';
-      const adapter = new ViemAdapter(mockWalletClient, upperCaseAddress);
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, { address: upperCaseAddress });
 
       const address = await adapter.getAddress();
 
@@ -36,61 +63,145 @@ describe('ViemAdapter', () => {
 
   describe('signMessage', () => {
     it('should call walletClient.signMessage with correct parameters', async () => {
-      const mockWalletClient = {
-        signMessage: vi.fn().mockResolvedValue(testSignature),
-      };
-      const adapter = new ViemAdapter(mockWalletClient, testAddress);
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.signMessage.mockResolvedValue(testSignature);
+      const mockPublicClient = createMockPublicClient();
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
 
       const message = new Uint8Array([1, 2, 3, 4, 5]);
       const signature = await adapter.signMessage(message);
 
       expect(mockWalletClient.signMessage).toHaveBeenCalledWith({
-        account: testAddress,
+        account: mockAccount,
         message: { raw: message },
       });
       expect(signature).toBe(testSignature);
     });
 
     it('should handle empty message', async () => {
-      const mockWalletClient = {
-        signMessage: vi.fn().mockResolvedValue(testSignature),
-      };
-      const adapter = new ViemAdapter(mockWalletClient, testAddress);
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.signMessage.mockResolvedValue(testSignature);
+      const mockPublicClient = createMockPublicClient();
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
 
       const message = new Uint8Array([]);
       await adapter.signMessage(message);
 
       expect(mockWalletClient.signMessage).toHaveBeenCalledWith({
-        account: testAddress,
+        account: mockAccount,
         message: { raw: message },
       });
     });
 
     it('should handle large messages', async () => {
-      const mockWalletClient = {
-        signMessage: vi.fn().mockResolvedValue(testSignature),
-      };
-      const adapter = new ViemAdapter(mockWalletClient, testAddress);
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.signMessage.mockResolvedValue(testSignature);
+      const mockPublicClient = createMockPublicClient();
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
 
       const message = new Uint8Array(1024).fill(255);
       const signature = await adapter.signMessage(message);
 
       expect(mockWalletClient.signMessage).toHaveBeenCalledWith({
-        account: testAddress,
+        account: mockAccount,
         message: { raw: message },
       });
       expect(signature).toBe(testSignature);
     });
 
     it('should propagate errors from walletClient', async () => {
-      const mockWalletClient = {
-        signMessage: vi.fn().mockRejectedValue(new Error('User rejected signature')),
-      };
-      const adapter = new ViemAdapter(mockWalletClient, testAddress);
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.signMessage.mockRejectedValue(new Error('User rejected signature'));
+      const mockPublicClient = createMockPublicClient();
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
 
       const message = new Uint8Array([1, 2, 3]);
 
       await expect(adapter.signMessage(message)).rejects.toThrow('User rejected signature');
+    });
+  });
+
+  describe('signTypedData', () => {
+    it('should call walletClient.signTypedData with correct parameters', async () => {
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.signTypedData.mockResolvedValue(testSignature);
+      const mockPublicClient = createMockPublicClient();
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
+
+      const domain = {
+        name: 'Test Token',
+        version: '1',
+        chainId: 42161,
+        verifyingContract: '0x3335733c454805df6a77f825f266e136FB4a3333',
+      };
+
+      const types = {
+        Permit: [
+          { name: 'owner', type: 'address' },
+          { name: 'spender', type: 'address' },
+          { name: 'value', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' },
+        ],
+      };
+
+      const value = {
+        owner: testAddress,
+        spender: '0x3335733c454805df6a77f825f266e136FB4a3333',
+        value: BigInt('1000000'),
+        nonce: BigInt(0),
+        deadline: BigInt(1700000000),
+      };
+
+      const signature = await adapter.signTypedData(domain, types, value);
+
+      expect(mockWalletClient.signTypedData).toHaveBeenCalledWith({
+        account: mockAccount,
+        domain: expect.objectContaining({
+          name: 'Test Token',
+          version: '1',
+          chainId: 42161,
+          verifyingContract: '0x3335733c454805df6a77f825f266e136FB4a3333',
+        }),
+        types,
+        primaryType: 'Permit',
+        message: value,
+      });
+      expect(signature).toBe(testSignature);
+    });
+
+    it('should propagate errors from walletClient.signTypedData', async () => {
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.signTypedData.mockRejectedValue(new Error('User rejected typed data signing'));
+      const mockPublicClient = createMockPublicClient();
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
+
+      const domain = {
+        name: 'Test Token',
+        version: '1',
+        chainId: 42161,
+        verifyingContract: '0x3335733c454805df6a77f825f266e136FB4a3333',
+      };
+
+      const types = {
+        Permit: [
+          { name: 'owner', type: 'address' },
+          { name: 'spender', type: 'address' },
+          { name: 'value', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'deadline', type: 'uint256' },
+        ],
+      };
+
+      const value = {
+        owner: testAddress,
+        spender: '0x3335733c454805df6a77f825f266e136FB4a3333',
+        value: BigInt('1000000'),
+        nonce: BigInt(0),
+        deadline: BigInt(1700000000),
+      };
+
+      await expect(adapter.signTypedData(domain, types, value)).rejects.toThrow('User rejected typed data signing');
     });
   });
 
@@ -102,12 +213,12 @@ describe('ViemAdapter', () => {
         status: 'success' as const,
       };
 
-      const mockWalletClient = {
-        sendTransaction: vi.fn().mockResolvedValue(testTxHash),
-        waitForTransactionReceipt: vi.fn().mockResolvedValue(mockReceipt),
-      };
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.sendTransaction.mockResolvedValue(testTxHash);
+      const mockPublicClient = createMockPublicClient();
+      mockPublicClient.waitForTransactionReceipt.mockResolvedValue(mockReceipt);
 
-      const adapter = new ViemAdapter(mockWalletClient, testAddress);
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
 
       const tx: TransactionRequest = {
         to: '0x3335733c454805df6a77f825f266e136FB4a3333',
@@ -118,10 +229,10 @@ describe('ViemAdapter', () => {
       const response = await adapter.sendTransaction(tx);
 
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith({
-        account: testAddress,
+        account: mockAccount,
         to: tx.to,
         data: tx.data,
-        value: BigInt(tx.value),
+        value: BigInt(tx.value!),
         gas: undefined,
         gasPrice: undefined,
         maxFeePerGas: undefined,
@@ -138,16 +249,16 @@ describe('ViemAdapter', () => {
     });
 
     it('should send transaction without value', async () => {
-      const mockWalletClient = {
-        sendTransaction: vi.fn().mockResolvedValue(testTxHash),
-        waitForTransactionReceipt: vi.fn().mockResolvedValue({
-          transactionHash: testTxHash,
-          blockNumber: 12345678n,
-          status: 'success' as const,
-        }),
-      };
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.sendTransaction.mockResolvedValue(testTxHash);
+      const mockPublicClient = createMockPublicClient();
+      mockPublicClient.waitForTransactionReceipt.mockResolvedValue({
+        transactionHash: testTxHash,
+        blockNumber: 12345678n,
+        status: 'success' as const,
+      });
 
-      const adapter = new ViemAdapter(mockWalletClient, testAddress);
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
 
       const tx: TransactionRequest = {
         to: '0x3335733c454805df6a77f825f266e136FB4a3333',
@@ -157,7 +268,7 @@ describe('ViemAdapter', () => {
       await adapter.sendTransaction(tx);
 
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith({
-        account: testAddress,
+        account: mockAccount,
         to: tx.to,
         data: tx.data,
         value: undefined,
@@ -170,16 +281,16 @@ describe('ViemAdapter', () => {
     });
 
     it('should send transaction with gas parameters', async () => {
-      const mockWalletClient = {
-        sendTransaction: vi.fn().mockResolvedValue(testTxHash),
-        waitForTransactionReceipt: vi.fn().mockResolvedValue({
-          transactionHash: testTxHash,
-          blockNumber: 12345678n,
-          status: 'success' as const,
-        }),
-      };
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.sendTransaction.mockResolvedValue(testTxHash);
+      const mockPublicClient = createMockPublicClient();
+      mockPublicClient.waitForTransactionReceipt.mockResolvedValue({
+        transactionHash: testTxHash,
+        blockNumber: 12345678n,
+        status: 'success' as const,
+      });
 
-      const adapter = new ViemAdapter(mockWalletClient, testAddress);
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
 
       const tx: TransactionRequest = {
         to: '0x3335733c454805df6a77f825f266e136FB4a3333',
@@ -191,7 +302,7 @@ describe('ViemAdapter', () => {
       await adapter.sendTransaction(tx);
 
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith({
-        account: testAddress,
+        account: mockAccount,
         to: tx.to,
         data: tx.data,
         value: undefined,
@@ -204,16 +315,16 @@ describe('ViemAdapter', () => {
     });
 
     it('should send transaction with EIP-1559 parameters', async () => {
-      const mockWalletClient = {
-        sendTransaction: vi.fn().mockResolvedValue(testTxHash),
-        waitForTransactionReceipt: vi.fn().mockResolvedValue({
-          transactionHash: testTxHash,
-          blockNumber: 12345678n,
-          status: 'success' as const,
-        }),
-      };
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.sendTransaction.mockResolvedValue(testTxHash);
+      const mockPublicClient = createMockPublicClient();
+      mockPublicClient.waitForTransactionReceipt.mockResolvedValue({
+        transactionHash: testTxHash,
+        blockNumber: 12345678n,
+        status: 'success' as const,
+      });
 
-      const adapter = new ViemAdapter(mockWalletClient, testAddress);
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
 
       const tx: TransactionRequest = {
         to: '0x3335733c454805df6a77f825f266e136FB4a3333',
@@ -226,7 +337,7 @@ describe('ViemAdapter', () => {
       await adapter.sendTransaction(tx);
 
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith({
-        account: testAddress,
+        account: mockAccount,
         to: tx.to,
         data: tx.data,
         value: undefined,
@@ -239,16 +350,16 @@ describe('ViemAdapter', () => {
     });
 
     it('should send transaction with custom nonce', async () => {
-      const mockWalletClient = {
-        sendTransaction: vi.fn().mockResolvedValue(testTxHash),
-        waitForTransactionReceipt: vi.fn().mockResolvedValue({
-          transactionHash: testTxHash,
-          blockNumber: 12345678n,
-          status: 'success' as const,
-        }),
-      };
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.sendTransaction.mockResolvedValue(testTxHash);
+      const mockPublicClient = createMockPublicClient();
+      mockPublicClient.waitForTransactionReceipt.mockResolvedValue({
+        transactionHash: testTxHash,
+        blockNumber: 12345678n,
+        status: 'success' as const,
+      });
 
-      const adapter = new ViemAdapter(mockWalletClient, testAddress);
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
 
       const tx: TransactionRequest = {
         to: '0x3335733c454805df6a77f825f266e136FB4a3333',
@@ -259,7 +370,7 @@ describe('ViemAdapter', () => {
       await adapter.sendTransaction(tx);
 
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith({
-        account: testAddress,
+        account: mockAccount,
         to: tx.to,
         data: tx.data,
         value: undefined,
@@ -272,16 +383,16 @@ describe('ViemAdapter', () => {
     });
 
     it('should handle BigInt gas parameters', async () => {
-      const mockWalletClient = {
-        sendTransaction: vi.fn().mockResolvedValue(testTxHash),
-        waitForTransactionReceipt: vi.fn().mockResolvedValue({
-          transactionHash: testTxHash,
-          blockNumber: 12345678n,
-          status: 'success' as const,
-        }),
-      };
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.sendTransaction.mockResolvedValue(testTxHash);
+      const mockPublicClient = createMockPublicClient();
+      mockPublicClient.waitForTransactionReceipt.mockResolvedValue({
+        transactionHash: testTxHash,
+        blockNumber: 12345678n,
+        status: 'success' as const,
+      });
 
-      const adapter = new ViemAdapter(mockWalletClient, testAddress);
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
 
       const tx: TransactionRequest = {
         to: '0x3335733c454805df6a77f825f266e136FB4a3333',
@@ -293,7 +404,7 @@ describe('ViemAdapter', () => {
       await adapter.sendTransaction(tx);
 
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith({
-        account: testAddress,
+        account: mockAccount,
         to: tx.to,
         data: tx.data,
         value: undefined,
@@ -312,12 +423,12 @@ describe('ViemAdapter', () => {
         status: 'reverted' as const,
       };
 
-      const mockWalletClient = {
-        sendTransaction: vi.fn().mockResolvedValue(testTxHash),
-        waitForTransactionReceipt: vi.fn().mockResolvedValue(mockReceipt),
-      };
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.sendTransaction.mockResolvedValue(testTxHash);
+      const mockPublicClient = createMockPublicClient();
+      mockPublicClient.waitForTransactionReceipt.mockResolvedValue(mockReceipt);
 
-      const adapter = new ViemAdapter(mockWalletClient, testAddress);
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
 
       const tx: TransactionRequest = {
         to: '0x3335733c454805df6a77f825f266e136FB4a3333',
@@ -331,11 +442,11 @@ describe('ViemAdapter', () => {
     });
 
     it('should propagate sendTransaction errors', async () => {
-      const mockWalletClient = {
-        sendTransaction: vi.fn().mockRejectedValue(new Error('Insufficient funds')),
-      };
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.sendTransaction.mockRejectedValue(new Error('Insufficient funds'));
+      const mockPublicClient = createMockPublicClient();
 
-      const adapter = new ViemAdapter(mockWalletClient, testAddress);
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
 
       const tx: TransactionRequest = {
         to: '0x3335733c454805df6a77f825f266e136FB4a3333',
@@ -346,12 +457,12 @@ describe('ViemAdapter', () => {
     });
 
     it('should propagate waitForTransactionReceipt errors', async () => {
-      const mockWalletClient = {
-        sendTransaction: vi.fn().mockResolvedValue(testTxHash),
-        waitForTransactionReceipt: vi.fn().mockRejectedValue(new Error('Transaction timeout')),
-      };
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.sendTransaction.mockResolvedValue(testTxHash);
+      const mockPublicClient = createMockPublicClient();
+      mockPublicClient.waitForTransactionReceipt.mockRejectedValue(new Error('Transaction timeout'));
 
-      const adapter = new ViemAdapter(mockWalletClient, testAddress);
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
 
       const tx: TransactionRequest = {
         to: '0x3335733c454805df6a77f825f266e136FB4a3333',
@@ -364,16 +475,16 @@ describe('ViemAdapter', () => {
     });
 
     it('should handle zero value transactions', async () => {
-      const mockWalletClient = {
-        sendTransaction: vi.fn().mockResolvedValue(testTxHash),
-        waitForTransactionReceipt: vi.fn().mockResolvedValue({
-          transactionHash: testTxHash,
-          blockNumber: 12345678n,
-          status: 'success' as const,
-        }),
-      };
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.sendTransaction.mockResolvedValue(testTxHash);
+      const mockPublicClient = createMockPublicClient();
+      mockPublicClient.waitForTransactionReceipt.mockResolvedValue({
+        transactionHash: testTxHash,
+        blockNumber: 12345678n,
+        status: 'success' as const,
+      });
 
-      const adapter = new ViemAdapter(mockWalletClient, testAddress);
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
 
       const tx: TransactionRequest = {
         to: '0x3335733c454805df6a77f825f266e136FB4a3333',
@@ -384,7 +495,7 @@ describe('ViemAdapter', () => {
       await adapter.sendTransaction(tx);
 
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith({
-        account: testAddress,
+        account: mockAccount,
         to: tx.to,
         data: tx.data,
         value: BigInt(0),
@@ -399,17 +510,17 @@ describe('ViemAdapter', () => {
 
   describe('integration', () => {
     it('should work with multiple sequential operations', async () => {
-      const mockWalletClient = {
-        signMessage: vi.fn().mockResolvedValue(testSignature),
-        sendTransaction: vi.fn().mockResolvedValue(testTxHash),
-        waitForTransactionReceipt: vi.fn().mockResolvedValue({
-          transactionHash: testTxHash,
-          blockNumber: 12345678n,
-          status: 'success' as const,
-        }),
-      };
+      const mockWalletClient = createMockWalletClient();
+      mockWalletClient.signMessage.mockResolvedValue(testSignature);
+      mockWalletClient.sendTransaction.mockResolvedValue(testTxHash);
+      const mockPublicClient = createMockPublicClient();
+      mockPublicClient.waitForTransactionReceipt.mockResolvedValue({
+        transactionHash: testTxHash,
+        blockNumber: 12345678n,
+        status: 'success' as const,
+      });
 
-      const adapter = new ViemAdapter(mockWalletClient, testAddress);
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
 
       // Get address
       const address = await adapter.getAddress();
@@ -434,7 +545,7 @@ describe('ViemAdapter', () => {
 
       expect(mockWalletClient.signMessage).toHaveBeenCalledTimes(1);
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledTimes(1);
-      expect(mockWalletClient.waitForTransactionReceipt).toHaveBeenCalledTimes(1);
+      expect(mockPublicClient.waitForTransactionReceipt).toHaveBeenCalledTimes(1);
     });
   });
 });

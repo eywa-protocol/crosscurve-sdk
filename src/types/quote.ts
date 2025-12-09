@@ -8,13 +8,20 @@
 import type { RouteProviderValue } from '../constants/providers.js';
 
 /**
+ * Chain identifier - accepts either numeric chain ID or CAIP-2 string
+ * @example 42161 (numeric)
+ * @example "eip155:42161" (CAIP-2 format)
+ */
+export type ChainIdentifier = number | string;
+
+/**
  * Parameters for requesting a quote
  */
 export interface GetQuoteParams {
-  /** Source chain ID */
-  fromChain: number;
-  /** Destination chain ID */
-  toChain: number;
+  /** Source chain ID (number or CAIP-2 string like "eip155:42161") */
+  fromChain: ChainIdentifier;
+  /** Destination chain ID (number or CAIP-2 string like "eip155:1") */
+  toChain: ChainIdentifier;
   /** Source token address */
   fromToken: string;
   /** Destination token address */
@@ -48,19 +55,44 @@ export interface TxData {
 }
 
 /**
+ * Token reference within a route step
+ */
+export interface RouteStepToken {
+  /** Token contract address */
+  address: string;
+  /** Token symbol */
+  symbol: string;
+  /** Token decimals */
+  decimals: number;
+  /** Chain ID where token exists */
+  chainId: number;
+}
+
+/**
  * Single step in a routing path (matches actual API response)
  */
 export interface RouteStep {
-  /** Route provider type (rubic, bungee, etc) */
+  /** Route provider type (cross-curve, rubic, bungee) */
   type: string;
-  /** Chain ID for this step */
-  chainId: number;
+  /** Source chain ID for this step */
+  fromChainId: number;
+  /** Destination chain ID for this step */
+  toChainId: number;
+  /** Source token details */
+  fromToken: RouteStepToken;
+  /** Destination token details */
+  toToken: RouteStepToken;
   /** Provider-specific parameters */
-  params: Record<string, unknown>;
-  /** Quote details from provider (contains txData) */
+  params?: Record<string, unknown>;
+  /** Quote details from provider (contains txData and tracking IDs) */
   quote?: {
     /** Rubic quote ID (used for tracking) */
     id?: string;
+    /** Nested quote structure (Rubic API returns quote.quote.id) */
+    quote?: {
+      id?: string;
+      [key: string]: unknown;
+    };
     /** For bungee routes */
     route?: {
       txData?: TxData;

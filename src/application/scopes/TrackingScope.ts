@@ -4,7 +4,7 @@
  * @layer application - Depends ONLY on domain
  */
 
-import type { IApiClient } from '../../domain/interfaces/index.js';
+import type { IApiClient, ITrackingService } from '../../domain/interfaces/index.js';
 import type { TransactionStatus } from '../../types/index.js';
 
 /**
@@ -13,7 +13,7 @@ import type { TransactionStatus } from '../../types/index.js';
 export class TrackingScope {
   constructor(
     private readonly apiClient: IApiClient,
-    private readonly trackingService: any
+    private readonly trackingService: ITrackingService
   ) {}
 
   /**

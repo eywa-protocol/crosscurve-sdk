@@ -4,7 +4,14 @@
  * @layer infrastructure - Implements domain ChainSigner interface
  */
 
-import type { ChainSigner, TransactionRequest, TransactionResponse } from '../../types/signer.js';
+import type {
+  ChainSigner,
+  TransactionRequest,
+  TransactionResponse,
+  TypedDataDomain,
+  TypedDataField,
+  CallRequest,
+} from '../../types/signer.js';
 
 /**
  * Viem adapter for ChainSigner interface
@@ -30,6 +37,27 @@ export class ViemAdapter implements ChainSigner {
     const signature = await this.walletClient.signMessage({
       account: this.account,
       message: { raw: message },
+    });
+    return signature;
+  }
+
+  async signTypedData(
+    domain: TypedDataDomain,
+    types: Record<string, TypedDataField[]>,
+    value: Record<string, unknown>
+  ): Promise<string> {
+    const signature = await this.walletClient.signTypedData({
+      account: this.account,
+      domain: {
+        name: domain.name,
+        version: domain.version,
+        chainId: domain.chainId,
+        verifyingContract: domain.verifyingContract as `0x${string}` | undefined,
+        salt: domain.salt as `0x${string}` | undefined,
+      },
+      types,
+      primaryType: Object.keys(types)[0],
+      message: value,
     });
     return signature;
   }
@@ -61,5 +89,13 @@ export class ViemAdapter implements ChainSigner {
         };
       },
     };
+  }
+
+  async call(request: CallRequest): Promise<string> {
+    const result = await this.publicClient.call({
+      to: request.to as `0x${string}`,
+      data: request.data as `0x${string}`,
+    });
+    return result.data ?? '0x';
   }
 }

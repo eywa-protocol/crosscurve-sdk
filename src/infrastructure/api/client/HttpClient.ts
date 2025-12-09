@@ -33,7 +33,7 @@ export class HttpClient {
    */
   async get<T>(path: string, params?: Record<string, string>): Promise<T> {
     const url = RequestBuilder.buildUrl(this.config.baseUrl, path, params);
-    const headers = RequestBuilder.buildAuthHeaders(this.config.apiKey);
+    const headers = RequestBuilder.buildPartnerHeaders(this.config.apiKey);
     const options = RequestBuilder.buildGetOptions(headers);
 
     return this.retryHandler.execute(async () => {
@@ -46,7 +46,7 @@ export class HttpClient {
    */
   async post<T>(path: string, body: any): Promise<T> {
     const url = RequestBuilder.buildUrl(this.config.baseUrl, path);
-    const headers = RequestBuilder.buildAuthHeaders(this.config.apiKey);
+    const headers = RequestBuilder.buildPartnerHeaders(this.config.apiKey);
     const options = RequestBuilder.buildPostOptions(body, headers);
 
     return this.retryHandler.execute(async () => {
