@@ -1,0 +1,65 @@
+{
+  "name": "crosscurve-sdk",
+  "version": "1.0.0",
+  "description": "TypeScript SDK for cross-chain token swaps",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "test:e2e": "vitest run tests/e2e"
+  },
+  "keywords": [
+    "crosschain",
+    "swap",
+    "bridge",
+    "defi",
+    "ethereum",
+    "typescript"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "peerDependencies": {
+    "ethers": "^6.0.0 || ^5.0.0",
+    "viem": "^2.0.0",
+    "web3": "^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "viem": {
+      "optional": true
+    },
+    "ethers": {
+      "optional": true
+    },
+    "web3": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@vitest/coverage-v8": "^4.0.15",
+    "ethers": "^6.16.0",
+    "typescript": "^5.6.0",
+    "viem": "^2.41.2",
+    "vitest": "^3.2.4"
+  },
+  "author": "CrossCurve",
+  "license": "MIT"
+}
