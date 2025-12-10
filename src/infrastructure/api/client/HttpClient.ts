@@ -70,18 +70,23 @@ export class HttpClient {
 
       if (!response.ok) {
         const errorBody = await response.text();
-        let errorData: any;
+        let errorData: { message?: string; code?: string } | string;
         try {
           errorData = JSON.parse(errorBody);
         } catch {
           errorData = errorBody;
         }
 
-        throw new ApiError(
-          errorData?.message || `HTTP ${response.status}: ${response.statusText}`,
-          response.status,
-          errorData
-        );
+        const message = typeof errorData === 'object' && errorData?.message
+          ? errorData.message
+          : `HTTP ${response.status}: ${response.statusText}`;
+
+        // Sanitize error data - only include safe fields
+        const sanitizedData = typeof errorData === 'object' && errorData !== null
+          ? { message: errorData.message, code: errorData.code }
+          : { message: errorBody };
+
+        throw new ApiError(message, response.status, sanitizedData);
       }
 
       return await response.json();
@@ -92,7 +97,7 @@ export class HttpClient {
         throw error;
       }
 
-      if ((error as any).name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new NetworkError(`Request timeout after ${this.timeout}ms`);
       }
 

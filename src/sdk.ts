@@ -216,17 +216,54 @@ export class CrossCurveSDK {
   }
 
   /**
-   * Search transactions
+   * Search transactions by address or transaction hash
+   *
+   * @param query - Wallet address or transaction hash to search
+   * @returns Array of matching transaction statuses
+   *
+   * @remarks
+   * This method only searches CrossCurve protocol transactions.
+   * Transactions routed through external bridges (Rubic, Bungee) are not searchable
+   * through this method - use the bridge's native explorer for those.
    */
   async searchTransactions(query: string): Promise<TransactionStatus[]> {
     return this.trackingService.searchTransactions(query);
   }
 
   /**
-   * Recover failed transaction
+   * Recover failed transaction by requestId
+   *
+   * @param requestId - CrossCurve request ID from ExecuteResult
+   * @param options - Recovery options including signer
    */
   async recover(requestId: string, options: RecoveryOptions): Promise<ExecuteResult> {
     return this.recoveryService.recover(requestId, options);
+  }
+
+  /**
+   * Recover failed transaction by transaction hash
+   *
+   * Convenience method that searches for the transaction first,
+   * then initiates recovery using the found requestId.
+   *
+   * @param txHash - Source transaction hash
+   * @param options - Recovery options including signer
+   * @returns Execute result with recovery status
+   * @throws Error if transaction not found or has no requestId
+   */
+  async recoverFromTxHash(txHash: string, options: RecoveryOptions): Promise<ExecuteResult> {
+    const results = await this.searchTransactions(txHash);
+    if (results.length === 0) {
+      throw new Error(`No transaction found for hash: ${txHash}`);
+    }
+
+    const tx = results[0];
+    const requestId = tx.oracle?.requestId;
+    if (!requestId) {
+      throw new Error('Transaction has no requestId - cannot recover');
+    }
+
+    return this.recover(requestId, options);
   }
 
   /**

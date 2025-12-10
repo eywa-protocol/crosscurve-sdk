@@ -488,6 +488,64 @@ describe('Web3Adapter', () => {
     });
   });
 
+  describe('call', () => {
+    it('should make contract call via eth.call', async () => {
+      const mockWeb3 = {
+        ...createMockWeb3(),
+        eth: {
+          ...createMockWeb3().eth,
+          call: vi.fn().mockResolvedValue('0x0000000000000000000000000000000000000000000000000000000000000001'),
+        },
+      };
+      const adapter = new Web3Adapter(mockWeb3, testAddress);
+
+      const result = await adapter.call({
+        to: '0x3335733c454805df6a77f825f266e136FB4a3333',
+        data: '0x70a08231000000000000000000000000750035feead93d8e56656d0e1f398fba3b3866d5',
+      });
+
+      expect(mockWeb3.eth.call).toHaveBeenCalledWith({
+        to: '0x3335733c454805df6a77f825f266e136FB4a3333',
+        data: '0x70a08231000000000000000000000000750035feead93d8e56656d0e1f398fba3b3866d5',
+      });
+      expect(result).toBe('0x0000000000000000000000000000000000000000000000000000000000000001');
+    });
+
+    it('should return null for null response', async () => {
+      const mockWeb3 = {
+        ...createMockWeb3(),
+        eth: {
+          ...createMockWeb3().eth,
+          call: vi.fn().mockResolvedValue(null),
+        },
+      };
+      const adapter = new Web3Adapter(mockWeb3, testAddress);
+
+      const result = await adapter.call({
+        to: '0x3335733c454805df6a77f825f266e136FB4a3333',
+        data: '0x70a08231',
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('should propagate eth.call errors', async () => {
+      const mockWeb3 = {
+        ...createMockWeb3(),
+        eth: {
+          ...createMockWeb3().eth,
+          call: vi.fn().mockRejectedValue(new Error('Contract execution reverted')),
+        },
+      };
+      const adapter = new Web3Adapter(mockWeb3, testAddress);
+
+      await expect(adapter.call({
+        to: '0x3335733c454805df6a77f825f266e136FB4a3333',
+        data: '0x70a08231',
+      })).rejects.toThrow('Contract execution reverted');
+    });
+  });
+
   describe('integration', () => {
     it('should work with multiple sequential operations', async () => {
       const mockWeb3 = createMockWeb3();

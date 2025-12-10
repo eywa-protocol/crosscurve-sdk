@@ -5,20 +5,6 @@
  */
 
 /**
- * Parameters for creating a permit signature
- */
-export interface PermitParams {
-  /** Token contract address */
-  token: string;
-  /** Spender address (contract that will spend tokens) */
-  spender: string;
-  /** Amount to permit in token units */
-  value: bigint;
-  /** Permit deadline as Unix timestamp */
-  deadline: number;
-}
-
-/**
  * Permit signature components
  */
 export interface PermitSignature {
@@ -102,9 +88,19 @@ export function parsePermitSignature(signature: string): PermitSignature & { dea
     throw new Error(`Invalid signature length: expected 130 hex chars, got ${sig.length}`);
   }
 
+  // Validate hex characters
+  if (!/^[0-9a-fA-F]+$/.test(sig)) {
+    throw new Error('Invalid signature: contains non-hex characters');
+  }
+
   const r = '0x' + sig.slice(0, 64);
   const s = '0x' + sig.slice(64, 128);
   const v = parseInt(sig.slice(128, 130), 16);
+
+  // Validate v value (should be 0, 1, 27, or 28)
+  if (v !== 0 && v !== 1 && v !== 27 && v !== 28) {
+    throw new Error(`Invalid signature v value: ${v}`);
+  }
 
   return {
     r,

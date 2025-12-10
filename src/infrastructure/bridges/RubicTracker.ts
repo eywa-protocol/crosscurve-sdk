@@ -69,7 +69,7 @@ export class RubicTracker implements IBridgeTracker {
     return {
       status: this.mapStatus(data.status),
       sourceTx: {
-        hash: data.srcTxHash ?? data.sourceTxHash ?? null,
+        hash: data.srcTxHash ?? data.sourceTxHash ?? '',
         status: this.mapSourceStatus(data.status),
       },
       destinationTx: {

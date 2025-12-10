@@ -131,47 +131,51 @@ describe('E2E API Tests', () => {
       expect(quote.route.length).toBeGreaterThan(0);
     });
 
-    it('should handle different slippage values', async () => {
-      await sdk.loadTokens();
+    it(
+      'should handle different slippage values',
+      async () => {
+        await sdk.loadTokens();
 
-      const arbEth = sdk.getToken(
-        TEST_CHAINS.arbitrum,
-        '0x0000000000000000000000000000000000000000'
-      );
-      const opEth = sdk.getToken(
-        TEST_CHAINS.optimism,
-        '0x0000000000000000000000000000000000000000'
-      );
+        const arbEth = sdk.getToken(
+          TEST_CHAINS.arbitrum,
+          '0x0000000000000000000000000000000000000000'
+        );
+        const opEth = sdk.getToken(
+          TEST_CHAINS.optimism,
+          '0x0000000000000000000000000000000000000000'
+        );
 
-      expect(arbEth).toBeDefined();
-      expect(opEth).toBeDefined();
+        expect(arbEth).toBeDefined();
+        expect(opEth).toBeDefined();
 
-      const quote1 = await sdk.getQuote({
-        fromChain: TEST_CHAINS.arbitrum,
-        toChain: TEST_CHAINS.optimism,
-        fromToken: arbEth!.address,
-        toToken: opEth!.address,
-        amount: '1000000000000000',
-        slippage: 0.1,
-        sender: TEST_CONFIG.testWalletAddress,
-      });
+        const quote1 = await sdk.getQuote({
+          fromChain: TEST_CHAINS.arbitrum,
+          toChain: TEST_CHAINS.optimism,
+          fromToken: arbEth!.address,
+          toToken: opEth!.address,
+          amount: '1000000000000000',
+          slippage: 0.1,
+          sender: TEST_CONFIG.testWalletAddress,
+        });
 
-      const quote2 = await sdk.getQuote({
-        fromChain: TEST_CHAINS.arbitrum,
-        toChain: TEST_CHAINS.optimism,
-        fromToken: arbEth!.address,
-        toToken: opEth!.address,
-        amount: '1000000000000000',
-        slippage: 1.0,
-        sender: TEST_CONFIG.testWalletAddress,
-      });
+        const quote2 = await sdk.getQuote({
+          fromChain: TEST_CHAINS.arbitrum,
+          toChain: TEST_CHAINS.optimism,
+          fromToken: arbEth!.address,
+          toToken: opEth!.address,
+          amount: '1000000000000000',
+          slippage: 1.0,
+          sender: TEST_CONFIG.testWalletAddress,
+        });
 
-      expect(quote1).toBeDefined();
-      expect(quote2).toBeDefined();
-      // Higher slippage might result in different routes or amounts
-      expect(quote1.route.length).toBeGreaterThan(0);
-      expect(quote2.route.length).toBeGreaterThan(0);
-    });
+        expect(quote1).toBeDefined();
+        expect(quote2).toBeDefined();
+        // Higher slippage might result in different routes or amounts
+        expect(quote1.route.length).toBeGreaterThan(0);
+        expect(quote2.route.length).toBeGreaterThan(0);
+      },
+      90000
+    );
 
     it('should handle various token pairs', async () => {
       await sdk.loadTokens();

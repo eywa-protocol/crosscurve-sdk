@@ -18,6 +18,7 @@ import type {
   TransactionRequest,
   TrackingOptions,
   ApprovalMode,
+  RouteStep,
 } from '../../types/index.js';
 import { RouteProvider, type RouteProviderValue } from '../../constants/providers.js';
 import { pollWithCallback } from '../../utils/polling.js';
@@ -253,10 +254,6 @@ export class ExecuteService {
     // This shouldn't normally happen since CrossCurve always emits the event
     if (provider === RouteProvider.RUBIC || provider === RouteProvider.BUNGEE) {
       const chainId = this.getSourceChainId(quote);
-      console.log('[DEBUG] trackByProvider - using external bridge tracking');
-      console.log('[DEBUG] trackByProvider - txHash:', txHash);
-      console.log('[DEBUG] trackByProvider - provider:', provider);
-      console.log('[DEBUG] trackByProvider - bridgeId:', bridgeId);
       const status = await this.pollExternalBridge(txHash, provider, bridgeId, chainId, options);
       return { transactionHash: txHash, provider, bridgeId, status };
     }
@@ -337,13 +334,7 @@ export class ExecuteService {
     // Rubic ID is at route[0].quote.quote.id (nested quote from Rubic API)
     const routeQuote = quote.route[0]?.quote as Record<string, unknown> | undefined;
     const nestedQuote = routeQuote?.quote as Record<string, unknown> | undefined;
-    const rubicId = nestedQuote?.id as string | undefined;
-
-    console.log('[DEBUG] extractBridgeId - routeQuote:', routeQuote ? 'exists' : 'undefined');
-    console.log('[DEBUG] extractBridgeId - nestedQuote:', nestedQuote ? 'exists' : 'undefined');
-    console.log('[DEBUG] extractBridgeId - rubicId:', rubicId);
-
-    return rubicId;
+    return nestedQuote?.id as string | undefined;
   }
 
   /**

@@ -78,8 +78,8 @@ export class RetryHandler {
     }
 
     if (typeof error === 'object' && error !== null) {
-      const httpError = error as any;
-      if (httpError.status === 429 || httpError.status === 503 || httpError.status >= 500) {
+      const httpError = error as { status?: number };
+      if (httpError.status === 429 || httpError.status === 503 || (httpError.status && httpError.status >= 500)) {
         return true;
       }
     }

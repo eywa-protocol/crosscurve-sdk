@@ -508,6 +508,60 @@ describe('ViemAdapter', () => {
     });
   });
 
+  describe('call', () => {
+    it('should make contract call via publicClient', async () => {
+      const mockWalletClient = createMockWalletClient();
+      const mockPublicClient = {
+        ...createMockPublicClient(),
+        call: vi.fn().mockResolvedValue({
+          data: '0x0000000000000000000000000000000000000000000000000000000000000001',
+        }),
+      };
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
+
+      const result = await adapter.call({
+        to: '0x3335733c454805df6a77f825f266e136FB4a3333',
+        data: '0x70a08231000000000000000000000000750035feead93d8e56656d0e1f398fba3b3866d5',
+      });
+
+      expect(mockPublicClient.call).toHaveBeenCalledWith({
+        to: '0x3335733c454805df6a77f825f266e136FB4a3333',
+        data: '0x70a08231000000000000000000000000750035feead93d8e56656d0e1f398fba3b3866d5',
+      });
+      expect(result).toBe('0x0000000000000000000000000000000000000000000000000000000000000001');
+    });
+
+    it('should return 0x for undefined data response', async () => {
+      const mockWalletClient = createMockWalletClient();
+      const mockPublicClient = {
+        ...createMockPublicClient(),
+        call: vi.fn().mockResolvedValue({ data: undefined }),
+      };
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
+
+      const result = await adapter.call({
+        to: '0x3335733c454805df6a77f825f266e136FB4a3333',
+        data: '0x70a08231',
+      });
+
+      expect(result).toBe('0x');
+    });
+
+    it('should propagate publicClient.call errors', async () => {
+      const mockWalletClient = createMockWalletClient();
+      const mockPublicClient = {
+        ...createMockPublicClient(),
+        call: vi.fn().mockRejectedValue(new Error('Contract execution reverted')),
+      };
+      const adapter = new ViemAdapter(mockWalletClient, mockPublicClient, mockAccount);
+
+      await expect(adapter.call({
+        to: '0x3335733c454805df6a77f825f266e136FB4a3333',
+        data: '0x70a08231',
+      })).rejects.toThrow('Contract execution reverted');
+    });
+  });
+
   describe('integration', () => {
     it('should work with multiple sequential operations', async () => {
       const mockWalletClient = createMockWalletClient();

@@ -11,7 +11,8 @@ export {
   Web3Adapter,
 } from './infrastructure/adapters/index.js';
 
-export { ChainId } from './constants/index.js';
+export { ChainId, RouteProvider } from './constants/index.js';
+export type { RouteProviderValue } from './constants/providers.js';
 
 export type {
   CrossCurveConfig,
@@ -40,3 +41,12 @@ export {
   NetworkError,
   ValidationError,
 } from './infrastructure/api/errors/index.js';
+
+export {
+  TransactionError,
+  InvalidQuoteError,
+  InsufficientBalanceError,
+  SlippageExceededError,
+  RecoveryUnavailableError,
+  TimeoutError,
+} from './errors/index.js';

@@ -62,7 +62,10 @@ export class EthersV6Adapter implements ChainSigner {
   }
 
   async call(request: CallRequest): Promise<string> {
-    const result = await this.signer.provider?.call({
+    if (!this.signer.provider) {
+      throw new Error('Signer has no provider - cannot make contract calls');
+    }
+    const result = await this.signer.provider.call({
       to: request.to,
       data: request.data,
     });

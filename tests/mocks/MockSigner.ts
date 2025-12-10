@@ -46,7 +46,7 @@ export function createMockSigner(
     ),
     signTypedData: vi
       .fn<[TypedDataDomain, Record<string, TypedDataField[]>, Record<string, unknown>], Promise<string>>()
-      .mockResolvedValue('0x' + 'c'.repeat(130)),
+      .mockResolvedValue('0x' + 'a'.repeat(64) + 'b'.repeat(64) + '1b'), // r + s + v (v=27=0x1b)
     sendTransaction: vi
       .fn<[TransactionRequest], Promise<TransactionResponse>>()
       .mockResolvedValue(mockTxResponse),

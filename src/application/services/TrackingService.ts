@@ -211,7 +211,8 @@ export class TrackingService {
       }));
     } catch (error: unknown) {
       // API returns 404 when no transactions found - return empty array
-      if ((error as any)?.statusCode === 404) {
+      const apiError = error as { statusCode?: number };
+      if (apiError?.statusCode === 404) {
         return [];
       }
       throw error;
@@ -221,7 +222,7 @@ export class TrackingService {
   /**
    * Compute recovery information from transaction status
    */
-  private computeRecoveryInfo(tx: TransactionStatus | any): RecoveryInfo | undefined {
+  private computeRecoveryInfo(tx: TransactionStatus): RecoveryInfo | undefined {
     if (tx.destination?.emergency) {
       return {
         type: 'emergency',

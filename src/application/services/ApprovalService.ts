@@ -77,8 +77,11 @@ export class ApprovalService implements IApprovalService {
           approvalAmount
         );
         return { needed: true, type: 'permit', permit };
-      } catch {
-        // Permit failed, fallback to approve
+      } catch (error) {
+        // Permit failed - this is expected for some tokens that advertise
+        // permit support but don't implement it correctly. Fallback to approve.
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`Permit signature failed for token ${token.address}: ${message}. Falling back to approve().`);
       }
     }
 

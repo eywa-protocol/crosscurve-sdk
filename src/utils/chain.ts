@@ -37,25 +37,3 @@ export function resolveChainId(chain: ChainIdentifier): number {
   );
 }
 
-/**
- * Convert numeric chain ID to CAIP-2 format
- *
- * @param chainId Numeric chain ID
- * @returns CAIP-2 identifier (e.g., "eip155:42161")
- */
-export function toCAIP2(chainId: number): string {
-  return `eip155:${chainId}`;
-}
-
-/**
- * Check if a chain identifier is in CAIP-2 format
- *
- * @param chain Chain identifier to check
- * @returns true if CAIP-2 format, false otherwise
- */
-export function isCAIP2(chain: ChainIdentifier): chain is string {
-  if (typeof chain !== 'string') {
-    return false;
-  }
-  return CAIP2_EVM_PATTERN.test(chain);
-}

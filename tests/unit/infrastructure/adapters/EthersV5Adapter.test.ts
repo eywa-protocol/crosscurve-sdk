@@ -436,6 +436,77 @@ describe('EthersV5Adapter', () => {
     });
   });
 
+  describe('call', () => {
+    it('should make contract call via provider', async () => {
+      const mockProvider = {
+        call: vi.fn().mockResolvedValue('0x0000000000000000000000000000000000000000000000000000000000000001'),
+      };
+      const mockSigner = {
+        ...createMockSigner(),
+        provider: mockProvider,
+      };
+      const adapter = new EthersV5Adapter(mockSigner);
+
+      const result = await adapter.call({
+        to: '0x3335733c454805df6a77f825f266e136FB4a3333',
+        data: '0x70a08231000000000000000000000000750035feead93d8e56656d0e1f398fba3b3866d5',
+      });
+
+      expect(mockProvider.call).toHaveBeenCalledWith({
+        to: '0x3335733c454805df6a77f825f266e136FB4a3333',
+        data: '0x70a08231000000000000000000000000750035feead93d8e56656d0e1f398fba3b3866d5',
+      });
+      expect(result).toBe('0x0000000000000000000000000000000000000000000000000000000000000001');
+    });
+
+    it('should throw error when provider is undefined', async () => {
+      const mockSigner = {
+        ...createMockSigner(),
+        provider: undefined,
+      };
+      const adapter = new EthersV5Adapter(mockSigner);
+
+      await expect(adapter.call({
+        to: '0x3335733c454805df6a77f825f266e136FB4a3333',
+        data: '0x70a08231',
+      })).rejects.toThrow('Signer has no provider');
+    });
+
+    it('should return 0x for null response', async () => {
+      const mockProvider = {
+        call: vi.fn().mockResolvedValue(null),
+      };
+      const mockSigner = {
+        ...createMockSigner(),
+        provider: mockProvider,
+      };
+      const adapter = new EthersV5Adapter(mockSigner);
+
+      const result = await adapter.call({
+        to: '0x3335733c454805df6a77f825f266e136FB4a3333',
+        data: '0x70a08231',
+      });
+
+      expect(result).toBe('0x');
+    });
+
+    it('should propagate provider.call errors', async () => {
+      const mockProvider = {
+        call: vi.fn().mockRejectedValue(new Error('Contract execution reverted')),
+      };
+      const mockSigner = {
+        ...createMockSigner(),
+        provider: mockProvider,
+      };
+      const adapter = new EthersV5Adapter(mockSigner);
+
+      await expect(adapter.call({
+        to: '0x3335733c454805df6a77f825f266e136FB4a3333',
+        data: '0x70a08231',
+      })).rejects.toThrow('Contract execution reverted');
+    });
+  });
+
   describe('integration', () => {
     it('should work with multiple sequential operations', async () => {
       const mockSigner = createMockSigner();

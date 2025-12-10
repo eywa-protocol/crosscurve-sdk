@@ -73,10 +73,9 @@ export function extractRequestIdFromLogs(receipt: { logs?: TransactionLog[] } | 
       if (currentRequestId && currentRequestId !== '0x' + '0'.repeat(64)) {
         return currentRequestId;
       }
-    } catch (error) {
+    } catch {
       // Log parsing failed for this entry, continue to next log
       // This can happen with malformed logs or unexpected data formats
-      console.debug('Failed to parse ComplexOpProcessed log:', error);
     }
   }
 
