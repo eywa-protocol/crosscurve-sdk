@@ -171,7 +171,7 @@ async function main(): Promise<void> {
   const fee = quote.deliveryFee?.usd ? `$${quote.deliveryFee.usd.toFixed(2)} fee` : '';
 
   console.log(`Quote: ${amountOut} ${tokenOut?.symbol || ''} ${fee}`);
-  console.log(`Provider: ${quote.provider}`);
+  console.log(`Provider: ${quote.route[0]?.type || 'cross-curve'}`);
 
   if (quote.route?.length) {
     console.log('Route:');
@@ -211,11 +211,11 @@ async function main(): Promise<void> {
       const timestamp = new Date().toLocaleTimeString();
       console.log(`[${timestamp}] Status: ${currentStatus}`);
 
-      if (status.source?.hash) {
-        console.log(`  Source TX: ${status.source.hash}`);
+      if (status.source?.transactionHash) {
+        console.log(`  Source TX: ${status.source.transactionHash}`);
       }
-      if (status.destination?.hash) {
-        console.log(`  Dest TX: ${status.destination.hash}`);
+      if (status.destination?.transactionHash) {
+        console.log(`  Dest TX: ${status.destination.transactionHash}`);
       }
       if (status.oracle?.requestId) {
         console.log(`  Request ID: ${status.oracle.requestId}`);

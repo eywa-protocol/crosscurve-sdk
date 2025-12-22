@@ -10,9 +10,11 @@ import type { Quote } from '../../src/types/quote.js';
 export const crossChainQuote: Quote = {
   amountIn: '1000000000',
   amountOut: '999000000',
-  amountOutMin: '989010000',
-  fee: '1000000',
-  estimatedTime: 300,
+  deliveryFee: {
+    amount: '1000000',
+    usd: 1.0,
+  },
+  signature: 'mock-signature-cross-chain',
   route: [
     {
       type: 'crosscurve',
@@ -34,10 +36,14 @@ export const crossChainQuote: Quote = {
   ],
   txs: [
     {
-      to: '0x1234567890123456789012345678901234567890',
-      data: '0x',
-      value: '0',
       chainId: 42161,
+      consumptions: [
+        {
+          gasConsumption: 250000,
+          bridge: 'crosscurve',
+          type: 'start',
+        },
+      ],
     },
   ],
 };
@@ -48,9 +54,11 @@ export const crossChainQuote: Quote = {
 export const sameChainQuote: Quote = {
   amountIn: '1000000000',
   amountOut: '500000000000000000',
-  amountOutMin: '495000000000000000',
-  fee: '100000',
-  estimatedTime: 30,
+  deliveryFee: {
+    amount: '100000',
+    usd: 0.1,
+  },
+  signature: 'mock-signature-same-chain',
   route: [
     {
       type: 'crosscurve',
@@ -72,10 +80,14 @@ export const sameChainQuote: Quote = {
   ],
   txs: [
     {
-      to: '0x1234567890123456789012345678901234567890',
-      data: '0x',
-      value: '0',
       chainId: 42161,
+      consumptions: [
+        {
+          gasConsumption: 150000,
+          bridge: null,
+          type: 'start',
+        },
+      ],
     },
   ],
 };
@@ -86,9 +98,11 @@ export const sameChainQuote: Quote = {
 export const rubicQuote: Quote = {
   amountIn: '1000000000',
   amountOut: '998000000',
-  amountOutMin: '988020000',
-  fee: '2000000',
-  estimatedTime: 600,
+  deliveryFee: {
+    amount: '2000000',
+    usd: 2.0,
+  },
+  signature: 'mock-signature-rubic',
   route: [
     {
       type: 'rubic',
@@ -115,10 +129,14 @@ export const rubicQuote: Quote = {
   ],
   txs: [
     {
-      to: '0x1234567890123456789012345678901234567890',
-      data: '0x',
-      value: '0',
       chainId: 42161,
+      consumptions: [
+        {
+          gasConsumption: 300000,
+          bridge: 'rubic',
+          type: 'start',
+        },
+      ],
     },
   ],
 };
@@ -129,9 +147,11 @@ export const rubicQuote: Quote = {
 export const bungeeQuote: Quote = {
   amountIn: '1000000000',
   amountOut: '997000000',
-  amountOutMin: '987030000',
-  fee: '3000000',
-  estimatedTime: 900,
+  deliveryFee: {
+    amount: '3000000',
+    usd: 3.0,
+  },
+  signature: 'mock-signature-bungee',
   route: [
     {
       type: 'bungee',
@@ -153,10 +173,14 @@ export const bungeeQuote: Quote = {
   ],
   txs: [
     {
-      to: '0x1234567890123456789012345678901234567890',
-      data: '0x',
-      value: '0',
       chainId: 42161,
+      consumptions: [
+        {
+          gasConsumption: 350000,
+          bridge: 'bungee',
+          type: 'start',
+        },
+      ],
     },
   ],
 };
@@ -167,9 +191,11 @@ export const bungeeQuote: Quote = {
 export const emptyRouteQuote: Quote = {
   amountIn: '1000000000',
   amountOut: '1000000000',
-  amountOutMin: '990000000',
-  fee: '0',
-  estimatedTime: 60,
+  deliveryFee: {
+    amount: '0',
+    usd: 0,
+  },
+  signature: 'mock-signature-empty',
   route: [],
   txs: [],
 };
