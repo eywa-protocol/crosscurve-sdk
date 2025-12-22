@@ -66,7 +66,7 @@ describe('RecoveryService', () => {
     const emergencyStatus: TransactionStatus = {
       status: 'failed',
       inconsistency: false,
-      source: { status: 'completed', txHash: '0xsource' },
+      source: { status: 'completed', transactionHash: '0xsource' },
       destination: { status: 'failed', emergency: true },
       recovery: { available: true, type: 'emergency' },
     };
@@ -121,7 +121,7 @@ describe('RecoveryService', () => {
     const retryStatus: TransactionStatus = {
       status: 'failed',
       inconsistency: false,
-      source: { status: 'completed', txHash: '0xsource' },
+      source: { status: 'completed', transactionHash: '0xsource' },
       destination: { status: 'retry' },
       recovery: { available: true, type: 'retry' },
     };
@@ -150,7 +150,7 @@ describe('RecoveryService', () => {
     const inconsistencyStatus: TransactionStatus = {
       status: 'failed',
       inconsistency: true,
-      source: { status: 'completed', txHash: '0xsource' },
+      source: { status: 'completed', transactionHash: '0xsource' },
       destination: { status: 'failed' },
       recovery: { available: true, type: 'inconsistency' },
     };
