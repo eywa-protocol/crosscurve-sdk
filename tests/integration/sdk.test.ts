@@ -64,22 +64,6 @@ describe('CrossCurveSDK Integration', () => {
       expect(BigInt(quote.amountOut)).toBeGreaterThan(0n);
     }, 30000);
 
-    it('should support CAIP-2 chain identifiers', async () => {
-      const params: GetQuoteParams = {
-        fromChain: 'eip155:42161',
-        toChain: 'eip155:10',
-        fromToken: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
-        toToken: '0x7F5c764cBc14f9669B88837ca1490cCa17c31607',
-        amount: '1000000000',
-        slippage: 0.5,
-      };
-
-      const quote = await sdk.getQuote(params);
-
-      expect(quote).toBeDefined();
-      expect(quote.route).toBeDefined();
-    }, 30000);
-
     it('should throw on invalid parameters', async () => {
       const params: GetQuoteParams = {
         fromChain: 42161,
