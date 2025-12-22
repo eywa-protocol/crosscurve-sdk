@@ -1,6 +1,9 @@
 #!/usr/bin/env npx tsx
 /**
- * @fileoverview CLI tool for scanning routes via CrossCurve API
+ * @fileoverview CLI tool for validating route parameters using Tier 1 API
+ *
+ * Loads chains and tokens from the API, validates provided parameters,
+ * and displays token information. Uses only Tier 1 (data) endpoints.
  *
  * Usage:
  *   npx tsx tests/e2e/scan-routes.ts --tokenIn <address> --tokenOut <address> --chainIdIn <id> --chainIdOut <id> --amountIn <amount> [options]
@@ -13,11 +16,6 @@
  *   --amountIn      Amount in smallest units (wei for ETH, etc.)
  *
  * Optional:
- *   --slippage      Slippage tolerance in percent (default: 1)
- *   --from          Sender address
- *   --providers     Comma-separated list of providers (crosscurve,rubic,bungee)
- *   --feeFromAmount Whether to deduct fee from amount (default: false)
- *   --feeToken      Token address for fee payment
  *   --output        Output format: json, table, summary (default: summary)
  *
  * Examples:
@@ -27,13 +25,12 @@
  *     --tokenOut 0x94b008aA00579c1307B0EF2c499aD98a8ce58e58 \
  *     --chainIdIn 42161 \
  *     --chainIdOut 10 \
- *     --amountIn 1000000 \
- *     --slippage 0.5
+ *     --amountIn 1000000
  */
 
+import { formatUnits } from 'viem';
 import { CrossCurveSDK } from '../../src/sdk.js';
-import type { RoutingScanRequest } from '../../src/types/api/requests.js';
-import type { RouteProviderValue } from '../../src/constants/providers.js';
+import type { Chain, Token } from '../../src/types/index.js';
 
 interface CliArgs {
   tokenIn: string;
@@ -41,18 +38,23 @@ interface CliArgs {
   chainIdIn: number;
   chainIdOut: number;
   amountIn: string;
-  slippage: number;
-  from?: string;
-  providers?: RouteProviderValue[];
-  feeFromAmount?: boolean;
-  feeToken?: string;
   output: 'json' | 'table' | 'summary';
+}
+
+interface ValidationResult {
+  chainIn: Chain | null;
+  chainOut: Chain | null;
+  tokenIn: Token | null;
+  tokenOut: Token | null;
+  amountIn: string;
+  formattedAmountIn: string | null;
+  errors: string[];
+  warnings: string[];
 }
 
 function parseArgs(): CliArgs {
   const args = process.argv.slice(2);
   const parsed: Partial<CliArgs> = {
-    slippage: 1,
     output: 'summary',
   };
 
@@ -82,26 +84,6 @@ function parseArgs(): CliArgs {
         break;
       case 'amountIn':
         parsed.amountIn = value;
-        i++;
-        break;
-      case 'slippage':
-        parsed.slippage = parseFloat(value);
-        i++;
-        break;
-      case 'from':
-        parsed.from = value;
-        i++;
-        break;
-      case 'providers':
-        parsed.providers = value.split(',') as RouteProviderValue[];
-        i++;
-        break;
-      case 'feeFromAmount':
-        parsed.feeFromAmount = value === 'true';
-        i++;
-        break;
-      case 'feeToken':
-        parsed.feeToken = value;
         i++;
         break;
       case 'output':
@@ -140,95 +122,228 @@ Required:
   --amountIn      Amount in smallest units
 
 Optional:
-  --slippage      Slippage tolerance in percent (default: 1)
-  --from          Sender address
-  --providers     Comma-separated providers (crosscurve,rubic,bungee)
-  --feeFromAmount Deduct fee from amount (true/false)
-  --feeToken      Token address for fee
   --output        Output format: json, table, summary (default: summary)
   --help          Show this help message
+
+Example:
+  npx tsx tests/e2e/scan-routes.ts \\
+    --tokenIn 0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9 \\
+    --tokenOut 0x94b008aA00579c1307B0EF2c499aD98a8ce58e58 \\
+    --chainIdIn 42161 \\
+    --chainIdOut 10 \\
+    --amountIn 1000000
 `);
 }
 
-function formatAmount(amount: string, decimals: number = 18): string {
-  const num = BigInt(amount);
-  const divisor = BigInt(10 ** decimals);
-  const whole = num / divisor;
-  const fraction = num % divisor;
-  const fractionStr = fraction.toString().padStart(decimals, '0').slice(0, 6);
-  return `${whole}.${fractionStr}`;
+function findChain(chains: readonly Chain[], chainId: number): Chain | null {
+  return chains.find(c => c.id === chainId) ?? null;
 }
 
-function printSummary(routes: any[], args: CliArgs): void {
-  console.log('\n=== Route Scan Results ===\n');
-
-  console.log('Request:');
-  console.log(`  From Chain: ${args.chainIdIn}`);
-  console.log(`  To Chain: ${args.chainIdOut}`);
-  console.log(`  Token In: ${args.tokenIn}`);
-  console.log(`  Token Out: ${args.tokenOut}`);
-  console.log(`  Amount In: ${args.amountIn}`);
-  console.log(`  Slippage: ${args.slippage}%`);
-
-  if (!routes || routes.length === 0) {
-    console.log('\nNo routes found.');
-    return;
-  }
-
-  console.log(`\nFound ${routes.length} route(s):\n`);
-
-  routes.forEach((route, routeIndex) => {
-    console.log(`--- Route ${routeIndex + 1} ---`);
-    console.log(`  Amount Out: ${route.amountOut}`);
-    console.log(`  Amount Out Min: ${route.amountOutMin}`);
-    console.log(`  Execution Time: ${route.executionTime}s`);
-    console.log(`  Route Steps: ${route.route?.length || 0}`);
-
-    if (route.route && route.route.length > 0) {
-      console.log('  Path:');
-      route.route.forEach((step: any, index: number) => {
-        const type = step.type || 'unknown';
-        const fromToken = step.fromToken?.symbol || step.params?.tokenIn?.symbol || '?';
-        const toToken = step.toToken?.symbol || step.params?.tokenOut?.symbol || '?';
-        console.log(`    ${index + 1}. [${type}] ${fromToken} -> ${toToken}`);
-      });
-    }
-
-    if (route.warnings && route.warnings.length > 0) {
-      console.log('  Warnings:');
-      route.warnings.forEach((warning: any) => {
-        console.log(`    - ${warning.type}: ${warning.message || warning.value || ''}`);
-      });
-    }
-
-    if (route.tags && route.tags.length > 0) {
-      console.log(`  Tags: ${route.tags.join(', ')}`);
-    }
-    console.log('');
-  });
+function findToken(tokens: ReadonlyMap<number, readonly Token[]>, chainId: number, address: string): Token | null {
+  const chainTokens = tokens.get(chainId);
+  if (!chainTokens) return null;
+  return chainTokens.find(t => t.address.toLowerCase() === address.toLowerCase()) ?? null;
 }
 
-function printTable(routes: any[]): void {
-  if (!routes || routes.length === 0) {
-    console.log('\nNo routes found.');
-    return;
+async function validateRoute(sdk: CrossCurveSDK, args: CliArgs): Promise<ValidationResult> {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  // Find chains
+  const chainIn = findChain(sdk.chains, args.chainIdIn);
+  const chainOut = findChain(sdk.chains, args.chainIdOut);
+
+  if (!chainIn) {
+    errors.push(`Source chain ${args.chainIdIn} not found in supported chains`);
+  }
+  if (!chainOut) {
+    errors.push(`Destination chain ${args.chainIdOut} not found in supported chains`);
   }
 
-  console.log('\n┌───┬──────────────────┬──────────────────┬───────────┬───────┬──────────┐');
-  console.log('│ # │ Amount Out       │ Amount Out Min   │ Time (s)  │ Steps │ Tags     │');
-  console.log('├───┼──────────────────┼──────────────────┼───────────┼───────┼──────────┤');
+  // Find tokens
+  const tokenIn = findToken(sdk.tokens, args.chainIdIn, args.tokenIn);
+  const tokenOut = findToken(sdk.tokens, args.chainIdOut, args.tokenOut);
 
-  routes.forEach((route, index) => {
-    const num = String(index + 1).padEnd(1);
-    const amountOut = String(route.amountOut || 'N/A').slice(0, 16).padEnd(16);
-    const amountOutMin = String(route.amountOutMin || 'N/A').slice(0, 16).padEnd(16);
-    const time = String(route.executionTime || 0).slice(0, 9).padEnd(9);
-    const steps = String(route.route?.length || 0).padEnd(5);
-    const tags = (route.tags || []).join(',').slice(0, 8).padEnd(8);
-    console.log(`│ ${num} │ ${amountOut} │ ${amountOutMin} │ ${time} │ ${steps} │ ${tags} │`);
+  if (!tokenIn) {
+    errors.push(`Source token ${args.tokenIn} not found on chain ${args.chainIdIn}`);
+  }
+  if (!tokenOut) {
+    errors.push(`Destination token ${args.tokenOut} not found on chain ${args.chainIdOut}`);
+  }
+
+  // Format amount
+  let formattedAmountIn: string | null = null;
+  if (tokenIn) {
+    try {
+      formattedAmountIn = formatUnits(BigInt(args.amountIn), tokenIn.decimals);
+    } catch {
+      errors.push(`Invalid amountIn: ${args.amountIn}`);
+    }
+  }
+
+  // Add warnings for token properties
+  if (tokenIn && !tokenIn.permit) {
+    warnings.push(`Source token ${tokenIn.symbol} does not support permit (will require approval tx)`);
+  }
+  if (tokenIn?.wrapped) {
+    warnings.push(`Source token ${tokenIn.symbol} is a wrapped token`);
+  }
+  if (tokenOut?.wrapped) {
+    warnings.push(`Destination token ${tokenOut.symbol} is a wrapped token`);
+  }
+
+  return {
+    chainIn,
+    chainOut,
+    tokenIn,
+    tokenOut,
+    amountIn: args.amountIn,
+    formattedAmountIn,
+    errors,
+    warnings,
+  };
+}
+
+function printSummary(result: ValidationResult, args: CliArgs): void {
+  console.log('\n=== Route Validation Results ===\n');
+
+  // Source chain
+  console.log('Source Chain:');
+  if (result.chainIn) {
+    console.log(`  ID:     ${result.chainIn.id}`);
+    console.log(`  Name:   ${result.chainIn.name}`);
+    console.log(`  Router: ${result.chainIn.router}`);
+  } else {
+    console.log(`  ERROR: Chain ${args.chainIdIn} not found`);
+  }
+
+  // Source token
+  console.log('\nSource Token:');
+  if (result.tokenIn) {
+    console.log(`  Symbol:   ${result.tokenIn.symbol}`);
+    console.log(`  Name:     ${result.tokenIn.name}`);
+    console.log(`  Address:  ${result.tokenIn.address}`);
+    console.log(`  Decimals: ${result.tokenIn.decimals}`);
+    console.log(`  Permit:   ${result.tokenIn.permit ? 'Yes' : 'No'}`);
+    if (result.tokenIn.tags && result.tokenIn.tags.length > 0) {
+      console.log(`  Tags:     ${result.tokenIn.tags.join(', ')}`);
+    }
+  } else {
+    console.log(`  ERROR: Token ${args.tokenIn} not found on chain ${args.chainIdIn}`);
+  }
+
+  // Destination chain
+  console.log('\nDestination Chain:');
+  if (result.chainOut) {
+    console.log(`  ID:     ${result.chainOut.id}`);
+    console.log(`  Name:   ${result.chainOut.name}`);
+    console.log(`  Router: ${result.chainOut.router}`);
+  } else {
+    console.log(`  ERROR: Chain ${args.chainIdOut} not found`);
+  }
+
+  // Destination token
+  console.log('\nDestination Token:');
+  if (result.tokenOut) {
+    console.log(`  Symbol:   ${result.tokenOut.symbol}`);
+    console.log(`  Name:     ${result.tokenOut.name}`);
+    console.log(`  Address:  ${result.tokenOut.address}`);
+    console.log(`  Decimals: ${result.tokenOut.decimals}`);
+    console.log(`  Permit:   ${result.tokenOut.permit ? 'Yes' : 'No'}`);
+    if (result.tokenOut.tags && result.tokenOut.tags.length > 0) {
+      console.log(`  Tags:     ${result.tokenOut.tags.join(', ')}`);
+    }
+  } else {
+    console.log(`  ERROR: Token ${args.tokenOut} not found on chain ${args.chainIdOut}`);
+  }
+
+  // Amount
+  console.log('\nAmount:');
+  console.log(`  Raw:       ${result.amountIn}`);
+  if (result.formattedAmountIn && result.tokenIn) {
+    console.log(`  Formatted: ${result.formattedAmountIn} ${result.tokenIn.symbol}`);
+  }
+
+  // Errors
+  if (result.errors.length > 0) {
+    console.log('\nErrors:');
+    result.errors.forEach(e => console.log(`  - ${e}`));
+  }
+
+  // Warnings
+  if (result.warnings.length > 0) {
+    console.log('\nWarnings:');
+    result.warnings.forEach(w => console.log(`  - ${w}`));
+  }
+
+  // Validation status
+  console.log('\n--- Validation Status ---');
+  if (result.errors.length === 0) {
+    console.log('Valid: All parameters are valid for routing');
+  } else {
+    console.log(`Invalid: ${result.errors.length} error(s) found`);
+  }
+}
+
+function printTable(result: ValidationResult): void {
+  console.log('\n┌─────────────┬────────────────────────────────────────────────────┐');
+  console.log('│ Field       │ Value                                              │');
+  console.log('├─────────────┼────────────────────────────────────────────────────┤');
+
+  const rows = [
+    ['Chain In', result.chainIn ? `${result.chainIn.name} (${result.chainIn.id})` : 'NOT FOUND'],
+    ['Token In', result.tokenIn ? `${result.tokenIn.symbol} - ${result.tokenIn.address.slice(0, 20)}...` : 'NOT FOUND'],
+    ['Chain Out', result.chainOut ? `${result.chainOut.name} (${result.chainOut.id})` : 'NOT FOUND'],
+    ['Token Out', result.tokenOut ? `${result.tokenOut.symbol} - ${result.tokenOut.address.slice(0, 20)}...` : 'NOT FOUND'],
+    ['Amount', result.formattedAmountIn ? `${result.formattedAmountIn} ${result.tokenIn?.symbol || ''}` : result.amountIn],
+    ['Valid', result.errors.length === 0 ? 'Yes' : 'No'],
+  ];
+
+  rows.forEach(([field, value]) => {
+    console.log(`│ ${field.padEnd(11)} │ ${String(value).slice(0, 50).padEnd(50)} │`);
   });
 
-  console.log('└───┴──────────────────┴──────────────────┴───────────┴───────┴──────────┘');
+  console.log('└─────────────┴────────────────────────────────────────────────────┘');
+}
+
+function printJson(result: ValidationResult): void {
+  const output = {
+    valid: result.errors.length === 0,
+    chainIn: result.chainIn ? {
+      id: result.chainIn.id,
+      name: result.chainIn.name,
+      router: result.chainIn.router,
+    } : null,
+    chainOut: result.chainOut ? {
+      id: result.chainOut.id,
+      name: result.chainOut.name,
+      router: result.chainOut.router,
+    } : null,
+    tokenIn: result.tokenIn ? {
+      address: result.tokenIn.address,
+      symbol: result.tokenIn.symbol,
+      name: result.tokenIn.name,
+      decimals: result.tokenIn.decimals,
+      permit: result.tokenIn.permit,
+      tags: result.tokenIn.tags,
+    } : null,
+    tokenOut: result.tokenOut ? {
+      address: result.tokenOut.address,
+      symbol: result.tokenOut.symbol,
+      name: result.tokenOut.name,
+      decimals: result.tokenOut.decimals,
+      permit: result.tokenOut.permit,
+      tags: result.tokenOut.tags,
+    } : null,
+    amount: {
+      raw: result.amountIn,
+      formatted: result.formattedAmountIn,
+    },
+    errors: result.errors,
+    warnings: result.warnings,
+  };
+
+  console.log(JSON.stringify(output, null, 2));
 }
 
 async function main(): Promise<void> {
@@ -237,50 +352,37 @@ async function main(): Promise<void> {
   console.log('Initializing CrossCurve SDK...');
   const sdk = new CrossCurveSDK();
 
-  const request: RoutingScanRequest = {
-    params: {
-      tokenIn: args.tokenIn,
-      tokenOut: args.tokenOut,
-      chainIdIn: args.chainIdIn,
-      chainIdOut: args.chainIdOut,
-      amountIn: args.amountIn,
-    },
-    slippage: args.slippage,
-    from: args.from,
-    providers: args.providers,
-    feeFromAmount: args.feeFromAmount,
-    feeToken: args.feeToken,
-  };
+  console.log('Loading chains and tokens from API (Tier 1)...');
+  await sdk.init();
 
-  console.log('Scanning routes...');
+  console.log(`Loaded ${sdk.chains.length} chains and ${[...sdk.tokens.values()].flat().length} tokens`);
 
-  try {
-    const response = await sdk.routing.scan(request);
+  console.log('Validating route parameters...');
+  const result = await validateRoute(sdk, args);
 
-    switch (args.output) {
-      case 'json':
-        console.log(JSON.stringify(response, null, 2));
-        break;
-      case 'table':
-        printTable(response);
-        break;
-      case 'summary':
-      default:
-        printSummary(response, args);
-        break;
-    }
-  } catch (error) {
-    console.error('\nError scanning routes:');
-    if (error instanceof Error) {
-      console.error(`  ${error.message}`);
-      if (process.env.DEBUG) {
-        console.error(error.stack);
-      }
-    } else {
-      console.error(error);
-    }
+  switch (args.output) {
+    case 'json':
+      printJson(result);
+      break;
+    case 'table':
+      printTable(result);
+      break;
+    case 'summary':
+    default:
+      printSummary(result, args);
+      break;
+  }
+
+  // Exit with error code if validation failed
+  if (result.errors.length > 0) {
     process.exit(1);
   }
 }
 
-main();
+main().catch(error => {
+  console.error('\nError:', error.message);
+  if (process.env.DEBUG) {
+    console.error(error.stack);
+  }
+  process.exit(1);
+});
