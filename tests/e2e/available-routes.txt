@@ -1,0 +1,53 @@
+=== Available Routes Scan ===
+Wallet: 0x750035feead93d8e56656d0e1f398fba3b3866d5
+Date: 2025-12-22
+
+--- Working Routes ---
+
+1. TT2 (Arbitrum) → TT2 (Optimism)
+   Amount: 10 TT2
+   Output: 10 TT2
+   Fee: $0.33
+   Provider: CrossCurve
+   Route: [bridgeIn] TT2 -> TT2
+   TokenIn: 0xc3982a13a3bff7d55c923d6eaaa09371c3716498
+   TokenOut: 0x257c1018bd776df9aac46e8ed908fe7591689446
+
+2. USDT (Arbitrum) → USDT (Optimism)
+   Amount: 10 USDT
+   Output: 9.90 USDT
+   Fee: $0.52
+   Provider: CrossCurve
+   Route: [bridgeIn] -> [curveSwap] -> [curveSwap] -> [bridgeOut]
+   TokenIn: 0xa1729724a3740534fa78f3891320d8e5b5e3487c
+   TokenOut: 0xba8f7e453aee9e94f8695cc028ea3b85d98acf23
+
+3. AVAX (Avalanche) → BNB (BSC)
+   Amount: 0.1 AVAX
+   Output: 0.0013 BNB
+   Provider: Bungee
+   Route: [bungee] AVAX -> BNB
+   TokenIn: 0x0000000000000000000000000000000000000000
+   TokenOut: 0x0000000000000000000000000000000000000000
+
+4. TT2 (BSC) → TT2 (Avalanche)
+   Amount: 5 TT2
+   Output: 5 TT2
+   Fee: $1.79
+   Provider: CrossCurve synthTransfer
+   Route: [synthTransfer] TT2 -> TT2
+   TokenIn: 0xe007eb9a6cc14748023e3fe2ec9c65d93e80d64e
+   TokenOut: 0xc91bc09fc4eaf8afc4fe8596c52034dadc5b8dd9
+
+5. OP (Optimism) → AVAX (Avalanche)
+   Amount: 1 OP
+   Output: 0.022 AVAX
+   Provider: Bungee
+   Route: [bungee] OP -> AVAX
+   TokenIn: 0x4200000000000000000000000000000000000042
+   TokenOut: 0x0000000000000000000000000000000000000000
+
+--- No Route Available ---
+
+- TT (Arbitrum) → AVAX (Avalanche): No routes found
+- USDT (Optimism) → AVAX (Avalanche): No routes found

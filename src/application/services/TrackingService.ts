@@ -84,16 +84,54 @@ export class TrackingService {
 
   /**
    * Track via CrossCurve API (original behavior)
+   * Returns pending status if transaction not yet indexed (404)
    */
   private async trackViaCrossCurveApi(requestId: string): Promise<TransactionStatus> {
-    const response = await this.apiClient.getTransaction(requestId);
+    try {
+      const response = await this.apiClient.getTransaction(requestId);
 
-    const status: TransactionStatus = {
-      ...response,
-      recovery: this.computeRecoveryInfo(response),
-    };
+      const status: TransactionStatus = {
+        ...response,
+        recovery: this.computeRecoveryInfo(response),
+      };
 
-    return status;
+      return status;
+    } catch (error: unknown) {
+      // API returns 404 when transaction not yet indexed - return pending status
+      const apiError = error as { statusCode?: number };
+      if (apiError?.statusCode === 404) {
+        return {
+          status: 'in progress',
+          inconsistency: false,
+          source: {
+            chainId: 0,
+            transactionHash: '',
+            from: '',
+            events: [],
+            status: 'pending',
+          },
+          oracle: {
+            relayChainId: 0,
+            requestId,
+            status: 'in progress',
+            height: null,
+            epoch: null,
+            time: null,
+          },
+          destination: {
+            chainId: 0,
+            transactionHash: null,
+            events: [],
+            emergency: false,
+            status: 'pending',
+            bridgeState: {},
+          },
+          data: undefined,
+          recovery: undefined,
+        };
+      }
+      throw error;
+    }
   }
 
   /**

@@ -1,0 +1,52 @@
+=== Wallet Balance Snapshot ===
+Wallet: 0x750035feead93d8e56656d0e1f398fba3b3866d5
+Date: 2025-12-22 (Updated after swaps)
+
+arbitrum (Chain ID: 42161):
+  TT                   100.000000
+    Address: 0xb0efd4d10c89b470690af3c28190253682de723f
+  TT2                  100.000000
+    Address: 0xc3982a13a3bff7d55c923d6eaaa09371c3716498
+  USDT                  80.000000
+    Address: 0xa1729724a3740534fa78f3891320d8e5b5e3487c
+  ETH                    0.005227 (native)
+    Address: 0x0000000000000000000000000000000000000000
+
+avalanche (Chain ID: 43114):
+  TT2                  100.000000
+    Address: 0xc91bc09fc4eaf8afc4fe8596c52034dadc5b8dd9
+  USDT                 100.000000
+    Address: 0xacfde47705e1729e5c485d79b03f618042a41e36
+  sUSDT_arb             90.000000
+    Address: 0x30579f91d2885bddf4e6d50908d90d1011bfd2fc
+  sUSDT_opt             90.000000
+    Address: 0xf29680925c22340afb9c4fbfd5e39dc45d98e4ba
+  AVAX                   0.424401 (native)
+    Address: 0x0000000000000000000000000000000000000000
+
+bsc (Chain ID: 56):
+  TT2                    5.000000
+    Address: 0xe007eb9a6cc14748023e3fe2ec9c65d93e80d64e
+  BNB                    0.005514 (native)
+    Address: 0x0000000000000000000000000000000000000000
+
+optimism (Chain ID: 10):
+  USDT                 114.998982
+    Address: 0xba8f7e453aee9e94f8695cc028ea3b85d98acf23
+  TT2                  100.000000
+    Address: 0x257c1018bd776df9aac46e8ed908fe7591689446
+  OP                     8.116282
+    Address: 0x4200000000000000000000000000000000000042
+  ETH                    0.000099 (native)
+    Address: 0x0000000000000000000000000000000000000000
+
+--- Summary ---
+Total chains with balance: 4
+Total tokens with balance: 15
+
+--- Completed Swaps ---
+1. 0.5 OP → 0.000044 ETH (Optimism → Arbitrum) via Rubic
+2. 0.0003 ETH → 0.073 AVAX (Arbitrum → Avalanche) via Rubic
+3. 0.0015 ETH → 0.359 AVAX (Arbitrum → Avalanche) via Rubic
+4. 10 sUSDT_arb → 10 USDT (Avalanche → Arbitrum) via CrossCurve
+5. 10 sUSDT_opt → 10 USDT (Avalanche → Optimism) via CrossCurve
