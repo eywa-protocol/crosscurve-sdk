@@ -1,86 +1,30 @@
 /**
  * @fileoverview API Client port (interface)
- * @layer domain - Interface segregation principle
+ * @layer domain - ISP-compliant composed interface
  */
 
-import type {
-  RoutingScanRequest,
-  RoutingScanResponse,
-  TxCreateRequest,
-  TxCreateResponse,
-  TxCreateEmergencyRequest,
-  TxCreateRetryRequest,
-  TransactionGetResponse,
-  SearchResponse,
-  InconsistencyGetResponse,
-  InconsistencyCreateRequest,
-  InconsistencyCreateResponse,
-  TokenListResponse,
-  ChainListResponse,
-} from '../../types/api/index.js';
+import type { IRoutingApi } from './IRoutingApi.js';
+import type { ITransactionApi } from './ITransactionApi.js';
+import type { ISearchApi } from './ISearchApi.js';
+import type { IInconsistencyApi } from './IInconsistencyApi.js';
+import type { IDataApi } from './IDataApi.js';
 
 /**
- * API client interface for HTTP operations
+ * Composed API client interface for HTTP operations
  * Implemented by infrastructure/api/ApiClient
+ *
+ * This interface follows ISP by composing smaller, focused interfaces:
+ * - IRoutingApi: Route scanning operations
+ * - ITransactionApi: Transaction create/get operations
+ * - ISearchApi: Transaction search operations
+ * - IInconsistencyApi: Inconsistency resolution operations
+ * - IDataApi: Token and chain data operations
+ *
+ * Consumers can depend on specific sub-interfaces for narrower contracts.
  */
-export interface IApiClient {
-  /**
-   * Scan for available routes
-   * POST /routing/scan
-   */
-  scanRoutes(request: RoutingScanRequest): Promise<RoutingScanResponse>;
-
-  /**
-   * Create transaction calldata
-   * POST /tx/create
-   */
-  createTransaction(request: TxCreateRequest): Promise<TxCreateResponse>;
-
-  /**
-   * Create emergency withdrawal transaction
-   * POST /tx/create/emergency
-   */
-  createEmergencyTransaction(request: TxCreateEmergencyRequest): Promise<TxCreateResponse>;
-
-  /**
-   * Create retry transaction
-   * POST /tx/create/retry
-   */
-  createRetryTransaction(request: TxCreateRetryRequest): Promise<TxCreateResponse>;
-
-  /**
-   * Get transaction status
-   * GET /transaction/{requestId}
-   */
-  getTransaction(requestId: string): Promise<TransactionGetResponse>;
-
-  /**
-   * Search transactions
-   * GET /search?search={search}
-   */
-  searchTransactions(query: string): Promise<SearchResponse>;
-
-  /**
-   * Get inconsistency parameters
-   * GET /inconsistency/{requestId}
-   */
-  getInconsistencyParams(requestId: string): Promise<InconsistencyGetResponse>;
-
-  /**
-   * Create inconsistency resolution route
-   * POST /inconsistency
-   */
-  createInconsistency(request: InconsistencyCreateRequest): Promise<InconsistencyCreateResponse>;
-
-  /**
-   * Get token list
-   * GET /tokenlist
-   */
-  getTokenList(): Promise<TokenListResponse>;
-
-  /**
-   * Get chain list
-   * GET /chains (inferred endpoint)
-   */
-  getChainList(): Promise<ChainListResponse>;
-}
+export interface IApiClient
+  extends IRoutingApi,
+    ITransactionApi,
+    ISearchApi,
+    IInconsistencyApi,
+    IDataApi {}

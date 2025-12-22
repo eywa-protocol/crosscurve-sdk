@@ -18,6 +18,8 @@ import {
   isNativeToken,
   type PermitDomain,
 } from '../../utils/permit.js';
+import { validateAddress } from '../../utils/validation.js';
+import { ValidationError } from '../../infrastructure/api/errors/index.js';
 
 /**
  * ERC20 function selectors
@@ -35,6 +37,11 @@ const ERC20_SELECTORS = {
 const MAX_UINT256 = 2n ** 256n - 1n;
 
 /**
+ * Default permit deadline in seconds (1 hour)
+ */
+const DEFAULT_PERMIT_DEADLINE_SECONDS = 3600;
+
+/**
  * Service for managing token approvals with EIP-2612 permit support
  *
  * Implements permit-first approach:
@@ -45,11 +52,24 @@ const MAX_UINT256 = 2n ** 256n - 1n;
  * 5. Fallback to approve() transaction
  */
 export class ApprovalService implements IApprovalService {
+  private readonly permitDeadlineSeconds: number;
+
+  constructor(permitDeadlineSeconds?: number) {
+    this.permitDeadlineSeconds = permitDeadlineSeconds ?? DEFAULT_PERMIT_DEADLINE_SECONDS;
+  }
   /**
    * Handle token approval with permit-first approach
    */
   async handleApproval(params: ApprovalParams): Promise<ApprovalResult> {
     const { token, chainId, owner, spender, amount, signer, mode } = params;
+
+    // Validate addresses
+    validateAddress(token.address, 'token');
+    validateAddress(owner, 'owner');
+    validateAddress(spender, 'spender');
+    if (owner.toLowerCase() === spender.toLowerCase()) {
+      throw new ValidationError('Owner and spender cannot be the same address', 'spender');
+    }
 
     // Native tokens don't need approval
     if (isNativeToken(token.address)) {
@@ -140,8 +160,8 @@ export class ApprovalService implements IApprovalService {
     const nonce = await this.getNonce(signer, tokenAddress, owner);
     const tokenName = await this.getTokenName(signer, tokenAddress);
 
-    // Permit deadline: 1 hour from now
-    const deadline = Math.floor(Date.now() / 1000) + 3600;
+    // Permit deadline: current time + configured deadline in seconds
+    const deadline = Math.floor(Date.now() / 1000) + this.permitDeadlineSeconds;
 
     const domain: PermitDomain = {
       name: tokenName,

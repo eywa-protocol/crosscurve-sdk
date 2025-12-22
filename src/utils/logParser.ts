@@ -44,6 +44,11 @@ export function extractRequestIdFromLogs(receipt: { logs?: TransactionLog[] } | 
     return undefined;
   }
 
+  if (process.env.DEBUG_TX === 'true') {
+    console.log('[DEBUG LOGS] Total logs:', receipt.logs.length);
+    console.log('[DEBUG LOGS] Looking for topic:', COMPLEX_OP_PROCESSED_TOPIC);
+  }
+
   for (const log of receipt.logs) {
     // CRITICAL: First check if this is a ComplexOpProcessed event by matching topic hash
     // topics[0] is the event signature hash, topics[1] is chainIdFrom, topics[2] is currentRequestId
@@ -51,18 +56,30 @@ export function extractRequestIdFromLogs(receipt: { logs?: TransactionLog[] } | 
       continue;
     }
 
+    if (process.env.DEBUG_TX === 'true') {
+      console.log('[DEBUG LOGS] Log topic[0]:', log.topics[0]);
+    }
+
     // Must match the ComplexOpProcessed event signature
     if (log.topics[0] !== COMPLEX_OP_PROCESSED_TOPIC) {
       continue;
     }
 
+    if (process.env.DEBUG_TX === 'true') {
+      console.log('[DEBUG LOGS] Found ComplexOpProcessed! topics:', log.topics);
+      console.log('[DEBUG LOGS] data:', log.data);
+    }
+
     try {
-      // Decode non-indexed data: (uint64 chainIdTo, bytes32 nextRequestId, uint8 result, uint8 lastOp)
-      // nextRequestId is at offset 32 (after chainIdTo which is padded to 32 bytes)
+      // Decode non-indexed data: (bytes32 nextRequestId, uint8 result, uint8 lastOp)
+      // Based on actual event data, nextRequestId is the FIRST 32 bytes (at offset 0)
       const data = log.data;
-      if (data && data.length >= 130) { // 0x + 64 chars for chainIdTo + 64 chars for nextRequestId
-        // Extract nextRequestId (bytes32 at position 32-64)
-        const nextRequestId = '0x' + data.slice(66, 130);
+      if (data && data.length >= 66) { // 0x + 64 chars for nextRequestId
+        // Extract nextRequestId (bytes32 at position 0-32)
+        const nextRequestId = '0x' + data.slice(2, 66);
+        if (process.env.DEBUG_TX === 'true') {
+          console.log('[DEBUG LOGS] Extracted nextRequestId:', nextRequestId);
+        }
         if (nextRequestId && nextRequestId !== '0x' + '0'.repeat(64)) {
           return nextRequestId;
         }
@@ -74,8 +91,7 @@ export function extractRequestIdFromLogs(receipt: { logs?: TransactionLog[] } | 
         return currentRequestId;
       }
     } catch {
-      // Log parsing failed for this entry, continue to next log
-      // This can happen with malformed logs or unexpected data formats
+      // Log parsing failed, continue to next log
     }
   }
 

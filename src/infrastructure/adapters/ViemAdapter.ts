@@ -32,6 +32,10 @@ export class ViemAdapter implements ChainSigner {
     return typeof this.account === 'string' ? this.account : this.account.address;
   }
 
+  async getChainId(): Promise<number> {
+    return this.publicClient.getChainId();
+  }
+
   async signMessage(message: Uint8Array): Promise<string> {
     const signature = await this.walletClient.signMessage({
       account: this.account,
@@ -85,6 +89,7 @@ export class ViemAdapter implements ChainSigner {
           hash: receipt.transactionHash,
           blockNumber: Number(receipt.blockNumber),
           status: receipt.status === 'success' ? 1 : 0,
+          logs: receipt.logs,
         };
       },
     };

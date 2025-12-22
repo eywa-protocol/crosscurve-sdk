@@ -34,6 +34,7 @@ function transformToChains(networks: NetworksApiResponse): Chain[] {
       symbol: 'ETH',
       decimals: 18,
     },
+    router: data.router,
   }));
 }
 

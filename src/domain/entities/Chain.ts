@@ -20,6 +20,7 @@ export class ChainEntity implements IChain {
     symbol: string;
     decimals: number;
   };
+  readonly router: string;
 
   constructor(data: IChain) {
     this.id = data.id;
@@ -28,6 +29,7 @@ export class ChainEntity implements IChain {
     this.rpcUrl = data.rpcUrl;
     this.explorerUrl = data.explorerUrl;
     this.nativeCurrency = { ...data.nativeCurrency };
+    this.router = data.router;
   }
 
   /**

@@ -13,8 +13,18 @@ import type {
 } from '../../domain/interfaces/index.js';
 import type { RubicStatusResponse, RubicStatus } from './types.js';
 import { fetchWithRetry } from '../utils/fetchWithRetry.js';
+import { RateLimiter, type RateLimiterConfig } from '../../utils/rateLimiter.js';
 
 const RUBIC_API_BASE = 'https://api-v2.rubic.exchange';
+
+/**
+ * Default rate limiter config for Rubic API
+ */
+const DEFAULT_RATE_LIMITER_CONFIG: RateLimiterConfig = {
+  requestsPerSecond: 2,
+  circuitBreakerThreshold: 5,
+  circuitBreakerResetMs: 30000,
+};
 
 /**
  * Rubic bridge transaction tracker
@@ -22,6 +32,14 @@ const RUBIC_API_BASE = 'https://api-v2.rubic.exchange';
  */
 export class RubicTracker implements IBridgeTracker {
   readonly provider = 'rubic';
+  private readonly rateLimiter: RateLimiter;
+
+  constructor(rateLimiterConfig?: Partial<RateLimiterConfig>) {
+    this.rateLimiter = new RateLimiter(
+      { ...DEFAULT_RATE_LIMITER_CONFIG, ...rateLimiterConfig },
+      'rubic'
+    );
+  }
 
   /**
    * Track a transaction through Rubic's API
@@ -29,6 +47,9 @@ export class RubicTracker implements IBridgeTracker {
    * @returns Normalized bridge status
    */
   async track(params: BridgeTrackingParams): Promise<BridgeStatus> {
+    // Acquire rate limit permission (may throw CircuitBreakerError)
+    await this.rateLimiter.acquire();
+
     const url = new URL('/api/info/statusExtended', RUBIC_API_BASE);
     url.searchParams.set('srcTxHash', params.transactionHash);
 
@@ -36,10 +57,17 @@ export class RubicTracker implements IBridgeTracker {
       url.searchParams.set('rubicId', params.bridgeId);
     }
 
-    const data = await fetchWithRetry<RubicStatusResponse | { code: number; reason: string }>(url.toString(), {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-    });
+    let data: RubicStatusResponse | { code: number; reason: string };
+    try {
+      data = await fetchWithRetry<RubicStatusResponse | { code: number; reason: string }>(url.toString(), {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+      this.rateLimiter.recordSuccess();
+    } catch (error) {
+      this.rateLimiter.recordFailure();
+      throw error;
+    }
 
     // Check for error response from Rubic API
     if ('code' in data && 'reason' in data) {

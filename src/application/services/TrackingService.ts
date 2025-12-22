@@ -205,7 +205,8 @@ export class TrackingService {
   async searchTransactions(query: string): Promise<TransactionStatus[]> {
     try {
       const response = await this.apiClient.searchTransactions(query);
-      return response.transactions.map((tx) => ({
+      const transactions = response?.transactions ?? [];
+      return transactions.map((tx) => ({
         ...tx,
         recovery: this.computeRecoveryInfo(tx),
       }));

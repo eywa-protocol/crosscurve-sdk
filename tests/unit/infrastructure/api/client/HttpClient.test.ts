@@ -8,7 +8,7 @@ import { HttpClient } from '../../../../../src/infrastructure/api/client/HttpCli
 import { ApiError, NetworkError } from '../../../../../src/infrastructure/api/errors/index.js';
 
 describe('HttpClient', () => {
-  const baseUrl = 'https://api.crosscurve.io';
+  const baseUrl = 'https://api.crosscurve.fi';
   let client: HttpClient;
   let originalFetch: typeof global.fetch;
 

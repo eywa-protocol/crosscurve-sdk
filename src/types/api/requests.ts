@@ -36,7 +36,6 @@ export interface TxCreateRequest {
     v: number;
     r: string;
     s: string;
-    deadline: number;
   };
   buildCalldata?: boolean;
 }

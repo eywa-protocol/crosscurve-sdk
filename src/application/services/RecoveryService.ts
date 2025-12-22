@@ -16,6 +16,7 @@ import type {
   TransactionRequest,
   RecoveryType,
   ApprovalMode,
+  Quote,
 } from '../../types/index.js';
 import { RouteProvider } from '../../constants/providers.js';
 import {
@@ -189,7 +190,7 @@ export class RecoveryService {
     address: string
   ): Promise<{
     params: { tokenIn: string; amountIn: string; chainIdIn: number; tokenOut: string; chainIdOut: number };
-    route: { route: Array<{ fromToken?: { address: string } }> };
+    route: Quote;
   }> {
     const inconsistencyParams = await this.apiClient.getInconsistencyParams(requestId);
 
@@ -211,7 +212,7 @@ export class RecoveryService {
 
     return {
       params: inconsistencyParams.params,
-      route: routes[0] as { route: Array<{ fromToken?: { address: string } }> },
+      route: routes[0],
     };
   }
 
@@ -240,7 +241,7 @@ export class RecoveryService {
    */
   private async createInconsistencyTransaction(
     requestId: string,
-    route: { route: Array<{ fromToken?: { address: string } }> },
+    route: Quote,
     params: { chainIdIn: number; amountIn: string },
     address: string,
     signer: RecoveryOptions['signer']
@@ -251,7 +252,7 @@ export class RecoveryService {
     let txResponse = await this.apiClient.createInconsistency({
       requestId,
       signature,
-      routing: route as unknown as Parameters<typeof this.apiClient.createInconsistency>[0]['routing'],
+      routing: route,
     });
 
     // Handle token approval if needed
@@ -272,7 +273,7 @@ export class RecoveryService {
         txResponse = await this.apiClient.createInconsistency({
           requestId,
           signature,
-          routing: route as unknown as Parameters<typeof this.apiClient.createInconsistency>[0]['routing'],
+          routing: route,
           permit: {
             v: approvalResult.permit.v,
             r: approvalResult.permit.r,
@@ -345,7 +346,7 @@ export class RecoveryService {
   /**
    * Extract source token info from quote for approval
    */
-  private extractSourceToken(quote: { route: Array<{ fromToken?: { address: string } }> }): ApprovalTokenInfo | undefined {
+  private extractSourceToken(quote: Quote): ApprovalTokenInfo | undefined {
     const firstStep = quote.route[0];
     if (!firstStep?.fromToken) {
       return undefined;

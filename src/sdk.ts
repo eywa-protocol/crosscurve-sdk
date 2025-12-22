@@ -2,11 +2,12 @@
  * @fileoverview Main CrossCurve SDK class
  */
 
-import type { SDKConfig, CrossCurveConfig } from './config/index.js';
+import type { SDKConfig, CrossCurveConfig, SDKDependencies } from './config/index.js';
 import { applyConfigDefaults, validateConfig } from './config/index.js';
 import { ApiClient } from './infrastructure/api/index.js';
 import { MemoryCache } from './infrastructure/cache/index.js';
 import { RubicTracker, BungeeTracker } from './infrastructure/bridges/index.js';
+import type { ICache, IApiClient, IBridgeTracker } from './domain/interfaces/index.js';
 import {
   QuoteService,
   ExecuteService,
@@ -59,8 +60,9 @@ import type {
  */
 export class CrossCurveSDK {
   private readonly config: SDKConfig;
-  private readonly apiClient: ApiClient;
-  private readonly cache: MemoryCache;
+  private readonly apiClient: IApiClient;
+  private readonly cache: ICache;
+  private readonly bridgeTrackers: IBridgeTracker[];
 
   private readonly quoteService: QuoteService;
   private readonly executeService: ExecuteService;
@@ -96,23 +98,36 @@ export class CrossCurveSDK {
    * Create a new CrossCurve SDK instance
    *
    * @param config - SDK configuration
+   * @param deps - Optional dependency injection for testing
    */
-  constructor(config?: Partial<CrossCurveConfig>) {
+  constructor(config?: Partial<CrossCurveConfig>, deps?: SDKDependencies) {
     this.config = applyConfigDefaults(config);
     validateConfig(this.config);
 
-    this.cache = new MemoryCache();
-    this.apiClient = new ApiClient({
+    // Use injected dependencies or create defaults
+    this.cache = deps?.cache ?? new MemoryCache();
+    this.apiClient = deps?.apiClient ?? new ApiClient({
       baseUrl: this.config.baseUrl,
       apiKey: this.config.apiKey,
+      timeout: this.config.http.timeout,
+      retry: {
+        maxTotalTime: this.config.http.retryMaxTime,
+        initialDelay: this.config.http.retryInitialDelay,
+        backoffMultiplier: this.config.http.retryBackoffMultiplier,
+      },
+      security: {
+        allowedHosts: this.config.security.allowedHosts,
+        enforceHttps: this.config.security.enforceHttps,
+      },
     });
-
-    this.quoteService = new QuoteService(this.apiClient);
-    this.trackingService = new TrackingService(this.apiClient, [
+    this.bridgeTrackers = deps?.bridgeTrackers ?? [
       new RubicTracker(),
       new BungeeTracker(),
-    ]);
-    this.approvalService = new ApprovalService();
+    ];
+
+    this.quoteService = new QuoteService(this.apiClient);
+    this.trackingService = new TrackingService(this.apiClient, this.bridgeTrackers);
+    this.approvalService = new ApprovalService(this.config.permitDeadlineSeconds);
     this.recoveryService = new RecoveryService(
       this.apiClient,
       this.trackingService,
@@ -124,9 +139,11 @@ export class CrossCurveSDK {
       this.trackingService,
       this.recoveryService,
       this.approvalService,
-      this.config.approvalMode
+      this.config.approvalMode,
+      (chainId) => this._chains.find((c) => c.id === chainId)?.router,
+      this.config.bridgePolling
     );
-    this.tokenService = new TokenService(this.apiClient, this.cache);
+    this.tokenService = new TokenService(this.apiClient, this.cache, this.config.cache.ttlMs);
 
     this.routing = new RoutingScope(this.apiClient);
     this.tx = new TxScope(this.apiClient);

@@ -26,6 +26,11 @@ export class Web3Adapter implements ChainSigner {
     return this.address;
   }
 
+  async getChainId(): Promise<number> {
+    const chainId = await this.web3.eth.getChainId();
+    return Number(chainId);
+  }
+
   async signMessage(message: Uint8Array): Promise<string> {
     const hexMessage = '0x' + Buffer.from(message).toString('hex');
     const signature = await this.web3.eth.sign(hexMessage, this.address);

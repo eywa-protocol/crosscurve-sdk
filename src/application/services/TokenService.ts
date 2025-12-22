@@ -7,18 +7,23 @@ import type { IApiClient, ICache } from '../../domain/interfaces/index.js';
 import type { Token, Chain } from '../../types/index.js';
 
 /**
- * Cache TTL for tokens and chains (10 minutes)
+ * Default cache TTL for tokens and chains (10 minutes)
  */
-const CACHE_TTL_MS = 10 * 60 * 1000;
+const DEFAULT_CACHE_TTL_MS = 10 * 60 * 1000;
 
 /**
  * Service for loading and managing tokens and chains
  */
 export class TokenService {
+  private readonly cacheTtlMs: number;
+
   constructor(
     private readonly apiClient: IApiClient,
-    private readonly cache: ICache
-  ) {}
+    private readonly cache: ICache,
+    cacheTtlMs?: number
+  ) {
+    this.cacheTtlMs = cacheTtlMs ?? DEFAULT_CACHE_TTL_MS;
+  }
 
   /**
    * Load all supported chains
@@ -34,7 +39,7 @@ export class TokenService {
     const response = await this.apiClient.getChainList();
     const chains = response.chains;
 
-    this.cache.set(cacheKey, chains, CACHE_TTL_MS);
+    this.cache.set(cacheKey, chains, this.cacheTtlMs);
     return chains;
   }
 
@@ -56,7 +61,7 @@ export class TokenService {
       tokens = tokens.filter((t) => t.chainId === chainId);
     }
 
-    this.cache.set(cacheKey, tokens, CACHE_TTL_MS);
+    this.cache.set(cacheKey, tokens, this.cacheTtlMs);
     return tokens;
   }
 

@@ -31,9 +31,21 @@ import {
   extractSourceChainIdFromStep,
 } from '../../utils/routeValidation.js';
 import { TransactionError } from '../../errors/index.js';
+import { ValidationError } from '../../infrastructure/api/errors/index.js';
+import type { PollingConfig } from '../../types/config.js';
+
+/**
+ * Maximum gas limit (30M - typical block gas limit)
+ */
+const MAX_GAS_LIMIT = 30_000_000n;
+
+/**
+ * Maximum gas price (10000 gwei - unreasonably high)
+ */
+const MAX_GAS_PRICE = 10_000_000_000_000n; // 10000 gwei
 
 /** Default polling config for external bridges (slower than CrossCurve) */
-const EXTERNAL_BRIDGE_POLLING = {
+const DEFAULT_BRIDGE_POLLING: PollingConfig = {
   initialInterval: 15000,   // 15 seconds
   backoffMultiplier: 1.3,
   maxInterval: 60000,       // 60 seconds
@@ -49,19 +61,96 @@ export type RouterLookup = (chainId: number) => string | undefined;
  * Service for executing swap quotes
  */
 export class ExecuteService {
+  private readonly bridgePolling: PollingConfig;
+
   constructor(
     private readonly apiClient: IApiClient,
     private readonly trackingService: ITrackingService,
     private readonly recoveryService: IRecoveryService,
     private readonly approvalService: IApprovalService,
     private readonly approvalMode: ApprovalMode,
-    private readonly getRouter?: RouterLookup
-  ) {}
+    private readonly getRouter?: RouterLookup,
+    bridgePolling?: PollingConfig
+  ) {
+    this.bridgePolling = bridgePolling ?? DEFAULT_BRIDGE_POLLING;
+  }
+
+  /**
+   * Validate gas parameters
+   */
+  private validateGasParams(options: ExecuteOptions): void {
+    if (options.gasLimit !== undefined) {
+      const limit = BigInt(options.gasLimit);
+      if (limit <= 0n) {
+        throw new ValidationError('gasLimit must be positive', 'gasLimit');
+      }
+      if (limit > MAX_GAS_LIMIT) {
+        throw new ValidationError(
+          `gasLimit ${limit} exceeds maximum allowed (${MAX_GAS_LIMIT})`,
+          'gasLimit'
+        );
+      }
+    }
+
+    if (options.gasPrice !== undefined) {
+      const price = BigInt(options.gasPrice);
+      if (price <= 0n) {
+        throw new ValidationError('gasPrice must be positive', 'gasPrice');
+      }
+      if (price > MAX_GAS_PRICE) {
+        throw new ValidationError(
+          `gasPrice ${price} exceeds maximum allowed (${MAX_GAS_PRICE})`,
+          'gasPrice'
+        );
+      }
+    }
+
+    if (options.maxFeePerGas !== undefined) {
+      const maxFee = BigInt(options.maxFeePerGas);
+      if (maxFee <= 0n) {
+        throw new ValidationError('maxFeePerGas must be positive', 'maxFeePerGas');
+      }
+      if (maxFee > MAX_GAS_PRICE) {
+        throw new ValidationError(
+          `maxFeePerGas ${maxFee} exceeds maximum allowed (${MAX_GAS_PRICE})`,
+          'maxFeePerGas'
+        );
+      }
+    }
+
+    if (options.maxPriorityFeePerGas !== undefined) {
+      const priorityFee = BigInt(options.maxPriorityFeePerGas);
+      if (priorityFee <= 0n) {
+        throw new ValidationError('maxPriorityFeePerGas must be positive', 'maxPriorityFeePerGas');
+      }
+      if (priorityFee > MAX_GAS_PRICE) {
+        throw new ValidationError(
+          `maxPriorityFeePerGas ${priorityFee} exceeds maximum allowed (${MAX_GAS_PRICE})`,
+          'maxPriorityFeePerGas'
+        );
+      }
+    }
+
+    // Validate EIP-1559 consistency
+    if (options.maxFeePerGas !== undefined && options.maxPriorityFeePerGas !== undefined) {
+      const maxFee = BigInt(options.maxFeePerGas);
+      const priorityFee = BigInt(options.maxPriorityFeePerGas);
+      if (priorityFee > maxFee) {
+        throw new ValidationError(
+          'maxPriorityFeePerGas cannot exceed maxFeePerGas',
+          'maxPriorityFeePerGas'
+        );
+      }
+    }
+  }
 
   /**
    * Execute a quote
    */
   async executeQuote(quote: Quote, options: ExecuteOptions): Promise<ExecuteResult> {
+    // Validate gas parameters first
+    this.validateGasParams(options);
+
     const address = await options.signer.getAddress();
     const recipient = options.recipient ?? address;
 
@@ -300,7 +389,7 @@ export class ExecuteService {
           options.onStatusChange(status);
         }
       },
-      EXTERNAL_BRIDGE_POLLING
+      this.bridgePolling
     );
   }
 

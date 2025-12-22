@@ -28,6 +28,19 @@ import * as endpoints from './endpoints/index.js';
 export interface ApiClientConfig {
   baseUrl: string;
   apiKey?: string;
+  /** Request timeout in milliseconds */
+  timeout?: number;
+  /** Retry configuration */
+  retry?: {
+    maxTotalTime?: number;
+    initialDelay?: number;
+    backoffMultiplier?: number;
+  };
+  /** Security configuration */
+  security?: {
+    allowedHosts?: string[];
+    enforceHttps?: boolean;
+  };
 }
 
 /**
@@ -41,6 +54,9 @@ export class ApiClient implements IApiClient {
     this.httpClient = new HttpClient({
       baseUrl: config.baseUrl,
       apiKey: config.apiKey,
+      timeout: config.timeout,
+      retry: config.retry,
+      security: config.security,
     });
   }
 

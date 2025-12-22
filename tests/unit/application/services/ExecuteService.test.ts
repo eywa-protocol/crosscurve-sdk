@@ -20,6 +20,13 @@ describe('ExecuteService', () => {
   let mockApprovalService: ReturnType<typeof createMockApprovalService>;
   let service: ExecuteService;
 
+  const mockRouters: Record<number, string> = {
+    42161: '0xfee84eCA702A68DEBB39f28663bf0cc8AB277443', // Arbitrum
+    10: '0x1234567890123456789012345678901234567890', // Optimism
+    137: '0x2345678901234567890123456789012345678901', // Polygon
+    56: '0x3456789012345678901234567890123456789012', // BSC
+  };
+
   beforeEach(() => {
     mockApiClient = createMockApiClient();
     mockTrackingService = createMockTrackingService();
@@ -31,7 +38,8 @@ describe('ExecuteService', () => {
       mockTrackingService as ITrackingService,
       mockRecoveryService as IRecoveryService,
       mockApprovalService as IApprovalService,
-      'exact'
+      'exact',
+      (chainId) => mockRouters[chainId]
     );
   });
 

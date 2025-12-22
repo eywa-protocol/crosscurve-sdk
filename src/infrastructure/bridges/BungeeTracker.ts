@@ -18,8 +18,18 @@ import type {
   BungeeDestinationStatus,
 } from './types.js';
 import { fetchWithRetry } from '../utils/fetchWithRetry.js';
+import { RateLimiter, type RateLimiterConfig } from '../../utils/rateLimiter.js';
 
 const BUNGEE_API_BASE = 'https://public-backend.bungee.exchange';
+
+/**
+ * Default rate limiter config for Bungee API
+ */
+const DEFAULT_RATE_LIMITER_CONFIG: RateLimiterConfig = {
+  requestsPerSecond: 2,
+  circuitBreakerThreshold: 5,
+  circuitBreakerResetMs: 30000,
+};
 
 /**
  * Bungee/Socket bridge transaction tracker
@@ -27,6 +37,14 @@ const BUNGEE_API_BASE = 'https://public-backend.bungee.exchange';
  */
 export class BungeeTracker implements IBridgeTracker {
   readonly provider = 'bungee';
+  private readonly rateLimiter: RateLimiter;
+
+  constructor(rateLimiterConfig?: Partial<RateLimiterConfig>) {
+    this.rateLimiter = new RateLimiter(
+      { ...DEFAULT_RATE_LIMITER_CONFIG, ...rateLimiterConfig },
+      'bungee'
+    );
+  }
 
   /**
    * Track a transaction through Bungee's API
@@ -34,13 +52,23 @@ export class BungeeTracker implements IBridgeTracker {
    * @returns Normalized bridge status
    */
   async track(params: BridgeTrackingParams): Promise<BridgeStatus> {
+    // Acquire rate limit permission (may throw CircuitBreakerError)
+    await this.rateLimiter.acquire();
+
     const url = new URL('/api/v1/bungee/status', BUNGEE_API_BASE);
     url.searchParams.set('txHash', params.transactionHash);
 
-    const data = await fetchWithRetry<BungeeStatusResponse>(url.toString(), {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-    });
+    let data: BungeeStatusResponse;
+    try {
+      data = await fetchWithRetry<BungeeStatusResponse>(url.toString(), {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
+      this.rateLimiter.recordSuccess();
+    } catch (error) {
+      this.rateLimiter.recordFailure();
+      throw error;
+    }
 
     if (!data.success || !data.result || data.result.length === 0) {
       throw new Error(data.message || 'Bungee API returned unsuccessful response');

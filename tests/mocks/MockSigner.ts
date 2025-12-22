@@ -58,6 +58,7 @@ export function createMockSigner(
 
 /**
  * Creates a mock transaction response with ComplexOpProcessed event
+ * Event data format: nextRequestId (32 bytes) + result (32 bytes) + lastOp (32 bytes)
  */
 export function createMockTxResponseWithRequestId(requestId: string): TransactionResponse {
   const COMPLEX_OP_PROCESSED_TOPIC = '0x830adbcf80ee865e0f0883ad52e813fdbf061b0216b724694a2b4e06708d243c';
@@ -72,16 +73,16 @@ export function createMockTxResponseWithRequestId(requestId: string): Transactio
         {
           topics: [
             COMPLEX_OP_PROCESSED_TOPIC,
-            '0x' + '0'.repeat(48) + '00000001', // chainIdFrom (indexed)
-            requestId, // currentRequestId (indexed)
+            '0x' + '0'.repeat(48) + '0000a4b1', // chainIdFrom: 42161 (indexed)
+            '0x' + '0'.repeat(64), // currentRequestId: 0 (indexed)
+            '0x' + '0'.repeat(48) + '0000a86a', // chainIdTo: 43114 (indexed)
           ],
+          // Data: nextRequestId (32) + result (32) + lastOp (32)
           data:
             '0x' +
-            '0'.repeat(48) +
-            '00000002' + // chainIdTo
-            requestId.slice(2) + // nextRequestId
-            '00' + // result
-            '00', // lastOp
+            requestId.slice(2) + // nextRequestId at offset 0
+            '0'.repeat(62) + '01' + // result = 1
+            '0'.repeat(64), // lastOp = 0
         },
       ],
     }),

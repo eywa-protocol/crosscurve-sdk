@@ -50,3 +50,5 @@ temp/
 CLAUDE.md
 docs/
 scripts/
+
+output_tokens.json

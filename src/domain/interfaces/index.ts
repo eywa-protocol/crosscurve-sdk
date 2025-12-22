@@ -3,6 +3,11 @@
  */
 
 export type { IApiClient } from './IApiClient.js';
+export type { IRoutingApi } from './IRoutingApi.js';
+export type { ITransactionApi } from './ITransactionApi.js';
+export type { ISearchApi } from './ISearchApi.js';
+export type { IInconsistencyApi } from './IInconsistencyApi.js';
+export type { IDataApi } from './IDataApi.js';
 export type { ICache } from './ICache.js';
 export type { ChainSigner } from '../../types/signer.js';
 export type {

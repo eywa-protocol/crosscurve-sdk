@@ -12,6 +12,8 @@ export interface TransactionRequest {
   data: string;
   /** Value to send in wei (optional) */
   value?: string;
+  /** Chain ID for replay protection */
+  chainId?: number;
   /** Gas limit override */
   gasLimit?: bigint | string;
   /** Gas price for legacy transactions */
@@ -82,6 +84,8 @@ export interface CallRequest {
 export interface ChainSigner {
   /** Get the signer's address */
   getAddress(): Promise<string>;
+  /** Get the chain ID (optional for backwards compatibility) */
+  getChainId?(): Promise<number>;
   /** Sign a message with the signer's private key */
   signMessage(message: Uint8Array): Promise<string>;
   /**

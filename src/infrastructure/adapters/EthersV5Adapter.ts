@@ -23,6 +23,10 @@ export class EthersV5Adapter implements ChainSigner {
     return await this.signer.getAddress();
   }
 
+  async getChainId(): Promise<number> {
+    return await this.signer.getChainId();
+  }
+
   async signMessage(message: Uint8Array): Promise<string> {
     return await this.signer.signMessage(message);
   }

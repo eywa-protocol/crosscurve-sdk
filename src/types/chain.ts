@@ -22,4 +22,6 @@ export interface Chain {
     symbol: string;
     decimals: number;
   };
+  /** CrossCurve router contract address (spender for approvals) */
+  router: string;
 }

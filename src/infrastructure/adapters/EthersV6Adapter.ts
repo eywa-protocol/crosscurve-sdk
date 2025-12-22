@@ -23,6 +23,14 @@ export class EthersV6Adapter implements ChainSigner {
     return await this.signer.getAddress();
   }
 
+  async getChainId(): Promise<number> {
+    if (!this.signer.provider) {
+      throw new Error('Signer has no provider - cannot get chain ID');
+    }
+    const network = await this.signer.provider.getNetwork();
+    return Number(network.chainId);
+  }
+
   async signMessage(message: Uint8Array): Promise<string> {
     return await this.signer.signMessage(message);
   }
