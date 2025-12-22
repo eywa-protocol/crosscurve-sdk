@@ -58,7 +58,8 @@
     "ethers": "^6.16.0",
     "typescript": "^5.6.0",
     "viem": "^2.41.2",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "zod": "^4.2.1"
   },
   "author": "CrossCurve",
   "license": "MIT"

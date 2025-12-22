@@ -91,6 +91,6 @@ export class Web3Adapter implements ChainSigner {
       to: request.to,
       data: request.data,
     });
-    return result;
+    return result ?? '0x';
   }
 }

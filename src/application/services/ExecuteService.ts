@@ -26,6 +26,10 @@ import { validateAddress } from '../../utils/validation.js';
 import { encodeCalldataFromResponse } from '../../utils/calldata.js';
 import { isNativeToken } from '../../utils/permit.js';
 import { extractRequestIdFromLogs } from '../../utils/logParser.js';
+import {
+  getFirstRouteStepOrUndefined,
+  extractSourceChainIdFromStep,
+} from '../../utils/routeValidation.js';
 import { TransactionError } from '../../errors/index.js';
 
 /** Default polling config for external bridges (slower than CrossCurve) */
@@ -37,6 +41,11 @@ const EXTERNAL_BRIDGE_POLLING = {
 };
 
 /**
+ * Function to get router address by chainId
+ */
+export type RouterLookup = (chainId: number) => string | undefined;
+
+/**
  * Service for executing swap quotes
  */
 export class ExecuteService {
@@ -45,7 +54,8 @@ export class ExecuteService {
     private readonly trackingService: ITrackingService,
     private readonly recoveryService: IRecoveryService,
     private readonly approvalService: IApprovalService,
-    private readonly approvalMode: ApprovalMode
+    private readonly approvalMode: ApprovalMode,
+    private readonly getRouter?: RouterLookup
   ) {}
 
   /**
@@ -57,58 +67,71 @@ export class ExecuteService {
 
     validateAddress(recipient, 'recipient');
 
-    // Step 1: Get transaction data from API (includes spender address)
-    let txData = await this.apiClient.createTransaction({
-      from: address,
-      recipient,
-      routing: quote,
-      buildCalldata: false,
-    });
-
-    // Step 2: Handle token approval if needed
+    // Step 1: Handle token approval if needed (before API call)
     const sourceToken = this.extractSourceToken(quote);
-    if (sourceToken && !isNativeToken(sourceToken.address)) {
-      // If sourceToken exists, quote.route[0] must exist (extractSourceToken checks this)
-      const firstStep = quote.route[0];
-      const chainId = this.extractSourceChainId(firstStep);
-      if (!chainId) {
-        throw new Error('Quote route missing source chain ID');
+    const firstStep = getFirstRouteStepOrUndefined(quote.route);
+    const chainId = extractSourceChainIdFromStep(firstStep);
+    let permit: { v: number; r: string; s: string } | undefined;
+
+    if (sourceToken && !isNativeToken(sourceToken.address) && chainId) {
+      // Get router address from chains data
+      const router = this.getRouter?.(chainId);
+      if (!router) {
+        throw new Error(`Router not found for chain ${chainId}. Call sdk.init() first.`);
       }
 
       const approvalResult = await this.approvalService.handleApproval({
         token: sourceToken,
         chainId,
         owner: address,
-        spender: txData.to,
+        spender: router,
         amount: BigInt(quote.amountIn),
         signer: options.signer,
         mode: this.approvalMode,
       });
 
-      // If permit was used, re-call API with permit signature
       if (approvalResult.type === 'permit' && approvalResult.permit) {
-        txData = await this.apiClient.createTransaction({
-          from: address,
-          recipient,
-          routing: quote,
-          buildCalldata: false,
-          permit: {
-            v: approvalResult.permit.v,
-            r: approvalResult.permit.r,
-            s: approvalResult.permit.s,
-            deadline: approvalResult.permit.deadline,
-          },
-        });
+        permit = {
+          v: approvalResult.permit.v,
+          r: approvalResult.permit.r,
+          s: approvalResult.permit.s,
+        };
       }
     }
+
+    // Step 2: Get transaction data from API (single call, with permit if available)
+    const txData = await this.apiClient.createTransaction({
+      from: address,
+      recipient,
+      routing: quote,
+      buildCalldata: false,
+      permit,
+    });
 
     // Step 3: Encode and send transaction
     const calldata = encodeCalldataFromResponse(txData);
 
+    // Calculate total value: base value + executionPrice from invoice
+    // When buildCalldata: false, we need to add executionPrice to the value
+    // The invoice is in args[2].invoice.executionPrice
+    let totalValue = BigInt(txData.value || '0');
+    if (txData.args && txData.args[2]) {
+      const invoiceArg = txData.args[2] as { invoice?: { executionPrice?: string } };
+      if (invoiceArg.invoice?.executionPrice) {
+        totalValue += BigInt(invoiceArg.invoice.executionPrice);
+      }
+    }
+
+    if (process.env.DEBUG_TX === 'true') {
+      console.log('[DEBUG TX] txData.value:', txData.value);
+      console.log('[DEBUG TX] totalValue (with executionPrice):', totalValue.toString());
+      console.log('[DEBUG TX] calldata length:', calldata.length);
+    }
+
     const txRequest: TransactionRequest = {
       to: txData.to,
       data: calldata,
-      value: txData.value,
+      value: totalValue.toString(),
       gasLimit: options.gasLimit,
       gasPrice: options.gasPrice,
       maxFeePerGas: options.maxFeePerGas,
@@ -132,12 +155,18 @@ export class ExecuteService {
     // Wait for receipt with error handling
     let receipt;
     try {
+      if (process.env.DEBUG_TX === 'true') {
+        console.log('[DEBUG TX] Transaction hash:', sentTx.hash);
+      }
       receipt = await sentTx.wait();
       if (!receipt) {
         throw new Error('Transaction receipt is null - transaction may have been dropped');
       }
       if (receipt.status === 0) {
         throw new Error('Transaction reverted');
+      }
+      if (process.env.DEBUG_TX === 'true') {
+        console.log('[DEBUG TX] Transaction confirmed, logs count:', (receipt as { logs?: unknown[] }).logs?.length);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -151,6 +180,9 @@ export class ExecuteService {
     const provider = this.extractProvider(quote);
     // Cast receipt to include logs - adapters return full receipt from underlying library
     const requestId = extractRequestIdFromLogs(receipt as { logs?: Array<{ topics?: string[]; data?: string }> });
+    if (process.env.DEBUG_TX === 'true') {
+      console.log('[DEBUG TX] Extracted requestId:', requestId);
+    }
     const bridgeId = this.extractBridgeId(quote, provider);
 
     if (!options.autoRecover) {
@@ -166,42 +198,12 @@ export class ExecuteService {
   }
 
   /**
-   * Extract source chain ID from route step
-   * Handles both standard format (fromChainId) and Rubic format (chainId, params.chainIdIn)
-   */
-  private extractSourceChainId(step: RouteStep | undefined): number | undefined {
-    if (!step) {
-      return undefined;
-    }
-
-    // Try standard format first
-    if (step.fromChainId) {
-      return step.fromChainId;
-    }
-
-    // Try Rubic format: step.chainId or step.params.chainIdIn
-    const stepWithChainId = step as { chainId?: number };
-    if (stepWithChainId.chainId) {
-      return stepWithChainId.chainId;
-    }
-
-    if (step.params) {
-      const params = step.params as Record<string, unknown>;
-      if (typeof params.chainIdIn === 'number') {
-        return params.chainIdIn;
-      }
-    }
-
-    return undefined;
-  }
-
-  /**
    * Extract source token info from quote for approval
    * Note: External bridges (Rubic, Bungee) don't support permit signatures,
    * so we disable permit for those routes.
    */
   private extractSourceToken(quote: Quote): ApprovalTokenInfo | undefined {
-    const firstStep = quote.route[0];
+    const firstStep = getFirstRouteStepOrUndefined(quote.route);
     if (!firstStep) {
       return undefined;
     }
@@ -225,9 +227,8 @@ export class ExecuteService {
       return undefined;
     }
 
-    // External bridges don't support permit - they require standard approve()
-    const provider = this.extractProvider(quote);
-    const supportsPermit = provider === RouteProvider.CROSS_CURVE;
+    // Disable permit for now - API has issues with permit signature format
+    const supportsPermit = false;
 
     return {
       address: tokenAddress,
@@ -265,7 +266,8 @@ export class ExecuteService {
    * Get source chain ID from quote
    */
   private getSourceChainId(quote: Quote): number | undefined {
-    return quote.route[0]?.fromChainId ?? quote.txs[0]?.chainId;
+    const firstStep = getFirstRouteStepOrUndefined(quote.route);
+    return extractSourceChainIdFromStep(firstStep) ?? quote.txs[0]?.chainId;
   }
 
   /**
@@ -306,11 +308,12 @@ export class ExecuteService {
    * Extract provider from quote route
    */
   private extractProvider(quote: Quote): RouteProviderValue {
-    if (quote.route.length === 0) {
+    const firstStep = getFirstRouteStepOrUndefined(quote.route);
+    if (!firstStep) {
       return RouteProvider.CROSS_CURVE;
     }
 
-    const routeType = quote.route[0].type?.toLowerCase();
+    const routeType = firstStep.type?.toLowerCase();
 
     if (routeType === 'rubic') {
       return RouteProvider.RUBIC;
@@ -332,7 +335,8 @@ export class ExecuteService {
     }
 
     // Rubic ID is at route[0].quote.quote.id (nested quote from Rubic API)
-    const routeQuote = quote.route[0]?.quote as Record<string, unknown> | undefined;
+    const firstStep = getFirstRouteStepOrUndefined(quote.route);
+    const routeQuote = firstStep?.quote as Record<string, unknown> | undefined;
     const nestedQuote = routeQuote?.quote as Record<string, unknown> | undefined;
     return nestedQuote?.id as string | undefined;
   }

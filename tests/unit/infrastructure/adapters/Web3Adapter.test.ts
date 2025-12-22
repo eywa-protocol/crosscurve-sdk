@@ -526,7 +526,8 @@ describe('Web3Adapter', () => {
         data: '0x70a08231',
       });
 
-      expect(result).toBeNull();
+      // Web3Adapter now returns '0x' for null responses (consistent with other adapters)
+      expect(result).toBe('0x');
     });
 
     it('should propagate eth.call errors', async () => {
