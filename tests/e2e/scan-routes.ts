@@ -1,8 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * @fileoverview CLI tool for scanning routes via CrossCurve SDK
- *
- * Uses sdk.init() to load chains/tokens, then sdk.routing.scan() to find routes.
+ * @fileoverview CLI tool for getting quotes via CrossCurve SDK high-level API
  *
  * Usage:
  *   npx tsx tests/e2e/scan-routes.ts --tokenIn <address> --tokenOut <address> --chainIdIn <id> --chainIdOut <id> --amountIn <amount> [options]
@@ -10,7 +8,6 @@
 
 import { formatUnits } from 'viem';
 import { CrossCurveSDK } from '../../src/sdk.js';
-import type { RoutingScanRequest } from '../../src/types/api/requests.js';
 import type { RouteProviderValue } from '../../src/constants/providers.js';
 
 interface CliArgs {
@@ -65,7 +62,6 @@ async function main(): Promise<void> {
   const sdk = new CrossCurveSDK();
   await sdk.init();
 
-  // Lookup tokens for display
   const tokenIn = sdk.getToken(args.chainIdIn, args.tokenIn);
   const tokenOut = sdk.getToken(args.chainIdOut, args.tokenOut);
   const chainIn = sdk.chains.find(c => c.id === args.chainIdIn);
@@ -74,36 +70,30 @@ async function main(): Promise<void> {
   console.log(`\n${chainIn?.name || args.chainIdIn} ${tokenIn?.symbol || args.tokenIn} -> ${chainOut?.name || args.chainIdOut} ${tokenOut?.symbol || args.tokenOut}`);
   console.log(`Amount: ${tokenIn ? formatUnits(BigInt(args.amountIn), tokenIn.decimals) : args.amountIn} ${tokenIn?.symbol || ''}`);
 
-  const request: RoutingScanRequest = {
-    params: {
-      tokenIn: args.tokenIn,
-      tokenOut: args.tokenOut,
-      chainIdIn: args.chainIdIn,
-      chainIdOut: args.chainIdOut,
-      amountIn: args.amountIn,
-    },
+  const quote = await sdk.getQuote({
+    fromChain: args.chainIdIn,
+    toChain: args.chainIdOut,
+    fromToken: args.tokenIn,
+    toToken: args.tokenOut,
+    amount: args.amountIn,
     slippage: args.slippage,
-    from: args.from,
+    sender: args.from,
     providers: args.providers,
-  };
-
-  const routes = await sdk.routing.scan(request);
-
-  console.log(`\nFound ${routes.length} route(s):\n`);
-
-  routes.forEach((route, i) => {
-    const amountOut = tokenOut ? formatUnits(BigInt(route.amountOut), tokenOut.decimals) : route.amountOut;
-    const fee = route.deliveryFee?.usd ? `$${route.deliveryFee.usd.toFixed(2)} fee` : '';
-    console.log(`${i + 1}. ${amountOut} ${tokenOut?.symbol || ''} ${fee}`);
-
-    if (route.route?.length) {
-      route.route.forEach((step: any, j: number) => {
-        const from = step.fromToken?.symbol || step.params?.tokenIn?.symbol || '?';
-        const to = step.toToken?.symbol || step.params?.tokenOut?.symbol || '?';
-        console.log(`   ${j + 1}. [${step.type}] ${from} -> ${to}`);
-      });
-    }
   });
+
+  const amountOut = tokenOut ? formatUnits(BigInt(quote.amountOut), tokenOut.decimals) : quote.amountOut;
+  const fee = quote.deliveryFee?.usd ? `$${quote.deliveryFee.usd.toFixed(2)} fee` : '';
+
+  console.log(`\nBest quote: ${amountOut} ${tokenOut?.symbol || ''} ${fee}`);
+
+  if (quote.route?.length) {
+    console.log('\nRoute:');
+    quote.route.forEach((step, i) => {
+      const from = step.fromToken?.symbol || tokenIn?.symbol || '?';
+      const to = step.toToken?.symbol || tokenOut?.symbol || '?';
+      console.log(`  ${i + 1}. [${step.type}] ${from} -> ${to}`);
+    });
+  }
 }
 
 main().catch(e => {
