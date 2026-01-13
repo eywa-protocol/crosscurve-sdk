@@ -1,5 +1,5 @@
 {
-  "name": "crosscurve-sdk",
+  "name": "@crosscurve/sdk",
   "version": "1.0.0",
   "description": "TypeScript SDK for cross-chain token swaps",
   "type": "module",
@@ -12,8 +12,17 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eywa-protocol/crosscurve-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/eywa-protocol/crosscurve-sdk/issues"
+  },
+  "homepage": "https://github.com/eywa-protocol/crosscurve-sdk#readme",
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
