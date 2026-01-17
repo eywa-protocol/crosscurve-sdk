@@ -1,0 +1,32 @@
+{
+  "name": "crosscurve-sdk-playground",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "scenario": "tsx",
+    "01-init": "tsx scenarios/01-init-sdk.ts",
+    "02-quote": "tsx scenarios/02-get-quote.ts",
+    "03-execute": "tsx scenarios/03-execute-swap.ts",
+    "04-track": "tsx scenarios/04-track-tx.ts",
+    "05-recovery": "tsx scenarios/05-recovery.ts",
+    "06-search": "tsx scenarios/06-search.ts",
+    "e2e:full": "tsx scenarios/e2e/full-swap-flow.ts",
+    "e2e:adapters": "tsx scenarios/e2e/swap-all-adapters.ts",
+    "e2e:multi-chain": "tsx scenarios/e2e/multi-chain-swap.ts",
+    "e2e:recovery": "tsx scenarios/e2e/recovery-flow.ts",
+    "e2e:testnet-mainnet": "tsx scenarios/e2e/testnet-to-mainnet.ts"
+  },
+  "dependencies": {
+    "@crosscurve/sdk": "file:../crosscurve-sdk-0.0.42-alpha.tgz",
+    "dotenv": "^16.3.1",
+    "viem": "^2.21.0",
+    "ethers": "^6.13.0",
+    "ethers5": "npm:ethers@^5.7.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  }
+}

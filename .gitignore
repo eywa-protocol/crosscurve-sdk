@@ -52,3 +52,11 @@ docs/
 scripts/
 
 output_tokens.json
+
+# Playground
+playground/node_modules/
+playground/.env
+!playground/.env.example
+
+# Build artifacts
+*.tgz
