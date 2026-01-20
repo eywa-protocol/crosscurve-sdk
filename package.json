@@ -31,8 +31,6 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:unit": "vitest run tests/unit",
-    "test:integration": "vitest run tests/integration",
-    "test:e2e": "vitest run tests/e2e",
     "prebuild": "npm run clean",
     "prepublishOnly": "npm run build && npm test",
     "release:alpha": "npm version prerelease --preid=alpha && npm publish --access public --tag alpha && git push origin main --tags",
