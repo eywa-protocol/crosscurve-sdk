@@ -32,7 +32,13 @@
     "test:coverage": "vitest run --coverage",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
-    "test:e2e": "vitest run tests/e2e"
+    "test:e2e": "vitest run tests/e2e",
+    "prebuild": "npm run clean",
+    "prepublishOnly": "npm run build && npm test",
+    "release:alpha": "npm version prerelease --preid=alpha && npm publish --access public --tag alpha && git push origin main --tags",
+    "release:patch": "npm version patch && npm publish --access public && git push origin main --tags",
+    "release:minor": "npm version minor && npm publish --access public && git push origin main --tags",
+    "release:major": "npm version major && npm publish --access public && git push origin main --tags"
   },
   "keywords": [
     "crosschain",
