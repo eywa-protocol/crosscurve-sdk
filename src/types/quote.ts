@@ -35,6 +35,8 @@ export interface GetQuoteParams {
   feeToken?: string;
   /** Filter by specific route providers (cross-curve, rubic, bungee) */
   providers?: RouteProviderValue[];
+  /** Fee share in basis points (0-10000) for partner commission - overrides SDK config */
+  feeShareBps?: number;
 }
 
 /**

@@ -21,6 +21,7 @@ export interface RoutingScanRequest {
   providers?: RouteProviderValue[];
   feeFromAmount?: boolean;
   feeToken?: string;
+  feeShareBps?: number;
 }
 
 /**
