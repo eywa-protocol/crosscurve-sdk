@@ -84,6 +84,8 @@ export interface CrossCurveConfig {
   security?: Partial<SecurityConfig>;
   /** Permit signature deadline in seconds (default: 3600 = 1 hour) */
   permitDeadlineSeconds?: number;
+  /** Fee share in basis points (0-10000) for partner commission */
+  feeShareBps?: number;
 }
 
 /**
@@ -103,6 +105,7 @@ export interface SDKConfig {
   cache: CacheConfig;
   security: SecurityConfig;
   permitDeadlineSeconds: number;
+  feeShareBps: number | undefined;
 }
 
 /**

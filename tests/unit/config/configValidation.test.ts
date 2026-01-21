@@ -160,4 +160,22 @@ describe('Config Validation', () => {
       expect(() => validateConfig(config)).toThrow('http.retryBackoffMultiplier must be positive');
     });
   });
+
+  describe('feeShareBps configuration', () => {
+    it('should accept feeShareBps in config', () => {
+      const userConfig: Partial<CrossCurveConfig> = {
+        feeShareBps: 50,
+      };
+
+      const config = applyConfigDefaults(userConfig);
+
+      expect(config.feeShareBps).toBe(50);
+    });
+
+    it('should default feeShareBps to undefined', () => {
+      const config = applyConfigDefaults();
+
+      expect(config.feeShareBps).toBeUndefined();
+    });
+  });
 });

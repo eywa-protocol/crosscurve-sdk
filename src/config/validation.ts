@@ -99,6 +99,7 @@ export function applyConfigDefaults(config?: Partial<CrossCurveConfig>): SDKConf
       enforceHttps: config?.security?.enforceHttps ?? DEFAULT_SECURITY.enforceHttps,
     },
     permitDeadlineSeconds: config?.permitDeadlineSeconds ?? DEFAULT_PERMIT_DEADLINE_SECONDS,
+    feeShareBps: config?.feeShareBps,
   };
 }
 
