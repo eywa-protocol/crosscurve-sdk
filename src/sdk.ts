@@ -125,7 +125,7 @@ export class CrossCurveSDK {
       new BungeeTracker(),
     ];
 
-    this.quoteService = new QuoteService(this.apiClient);
+    this.quoteService = new QuoteService(this.apiClient, this.config.feeShareBps);
     this.trackingService = new TrackingService(this.apiClient, this.bridgeTrackers);
     this.approvalService = new ApprovalService(this.config.permitDeadlineSeconds);
     this.recoveryService = new RecoveryService(
