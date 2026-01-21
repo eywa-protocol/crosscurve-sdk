@@ -112,7 +112,7 @@ export class RequestBuilder {
   static buildPartnerHeaders(apiKey?: string): Record<string, string> {
     if (!apiKey) return {};
     return {
-      'X-Integrator-Id': apiKey,
+      'api-key': apiKey,
     };
   }
 }

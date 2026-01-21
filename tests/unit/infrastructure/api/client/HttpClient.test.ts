@@ -178,7 +178,7 @@ describe('HttpClient', () => {
   });
 
   describe('API key', () => {
-    it('should include integrator ID in headers when provided', async () => {
+    it('should include api-key in headers when provided', async () => {
       const clientWithKey = new HttpClient({ baseUrl, apiKey: 'test-api-key' });
 
       global.fetch = vi.fn().mockResolvedValue({
@@ -192,7 +192,7 @@ describe('HttpClient', () => {
         expect.any(String),
         expect.objectContaining({
           headers: expect.objectContaining({
-            'X-Integrator-Id': 'test-api-key',
+            'api-key': 'test-api-key',
           }),
         })
       );
