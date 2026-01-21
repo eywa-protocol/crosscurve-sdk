@@ -1,6 +1,6 @@
 {
   "name": "@crosscurve/sdk",
-  "version": "0.0.42-alpha",
+  "version": "0.0.43-alpha",
   "description": "TypeScript SDK for cross-chain token swaps",
   "type": "module",
   "main": "./dist/index.js",
