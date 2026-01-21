@@ -31,6 +31,13 @@ export class QuoteService {
     validateAddress(params.fromToken, 'fromToken');
     validateAddress(params.toToken, 'toToken');
 
+    // Validate feeShareBps if provided
+    if (params.feeShareBps !== undefined) {
+      if (params.feeShareBps < 0 || params.feeShareBps > 10000) {
+        throw new Error('feeShareBps must be between 0 and 10000');
+      }
+    }
+
     // Resolve chain identifiers (supports both numeric IDs and CAIP-2 format)
     const chainIdIn = resolveChainId(params.fromChain);
     const chainIdOut = resolveChainId(params.toChain);

@@ -320,5 +320,45 @@ describe('QuoteService', () => {
         })
       );
     });
+
+    it('should reject negative feeShareBps', async () => {
+      await expect(
+        service.getQuote({
+          ...validParams,
+          feeShareBps: -1,
+        })
+      ).rejects.toThrow('feeShareBps must be between 0 and 10000');
+    });
+
+    it('should reject feeShareBps over 10000', async () => {
+      await expect(
+        service.getQuote({
+          ...validParams,
+          feeShareBps: 10001,
+        })
+      ).rejects.toThrow('feeShareBps must be between 0 and 10000');
+    });
+
+    it('should accept feeShareBps at boundary 0', async () => {
+      mockApiClient.scanRoutes.mockResolvedValue([crossChainQuote]);
+
+      await expect(
+        service.getQuote({
+          ...validParams,
+          feeShareBps: 0,
+        })
+      ).resolves.toBeDefined();
+    });
+
+    it('should accept feeShareBps at boundary 10000', async () => {
+      mockApiClient.scanRoutes.mockResolvedValue([crossChainQuote]);
+
+      await expect(
+        service.getQuote({
+          ...validParams,
+          feeShareBps: 10000,
+        })
+      ).resolves.toBeDefined();
+    });
   });
 });
