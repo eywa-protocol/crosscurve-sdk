@@ -117,6 +117,12 @@ export function validateConfig(config: SDKConfig): void {
     }
   }
 
+  if (config.feeShareBps !== undefined) {
+    if (config.feeShareBps < 0 || config.feeShareBps > 10000) {
+      throw new Error('feeShareBps must be between 0 and 10000');
+    }
+  }
+
   if (config.approvalMode !== 'exact' && config.approvalMode !== 'unlimited') {
     throw new Error('approvalMode must be either "exact" or "unlimited"');
   }

@@ -178,4 +178,36 @@ describe('Config Validation', () => {
       expect(config.feeShareBps).toBeUndefined();
     });
   });
+
+  describe('feeShareBps validation', () => {
+    it('should pass with valid feeShareBps', () => {
+      const config = applyConfigDefaults({ feeShareBps: 50 });
+      expect(() => validateConfig(config)).not.toThrow();
+    });
+
+    it('should pass with feeShareBps at 0', () => {
+      const config = applyConfigDefaults({ feeShareBps: 0 });
+      expect(() => validateConfig(config)).not.toThrow();
+    });
+
+    it('should pass with feeShareBps at 10000', () => {
+      const config = applyConfigDefaults({ feeShareBps: 10000 });
+      expect(() => validateConfig(config)).not.toThrow();
+    });
+
+    it('should reject negative feeShareBps', () => {
+      const config = applyConfigDefaults({ feeShareBps: -1 });
+      expect(() => validateConfig(config)).toThrow('feeShareBps must be between 0 and 10000');
+    });
+
+    it('should reject feeShareBps over 10000', () => {
+      const config = applyConfigDefaults({ feeShareBps: 10001 });
+      expect(() => validateConfig(config)).toThrow('feeShareBps must be between 0 and 10000');
+    });
+
+    it('should pass when feeShareBps is undefined', () => {
+      const config = applyConfigDefaults();
+      expect(() => validateConfig(config)).not.toThrow();
+    });
+  });
 });
