@@ -12,7 +12,10 @@ import { resolveChainId } from '../../utils/chain.js';
  * Service for fetching quotes and selecting best routes
  */
 export class QuoteService {
-  constructor(private readonly apiClient: IApiClient) {}
+  constructor(
+    private readonly apiClient: IApiClient,
+    private readonly defaultFeeShareBps?: number
+  ) {}
 
   /**
    * Get best quote for a swap
@@ -32,6 +35,9 @@ export class QuoteService {
     const chainIdIn = resolveChainId(params.fromChain);
     const chainIdOut = resolveChainId(params.toChain);
 
+    // Per-request feeShareBps overrides config default
+    const feeShareBps = params.feeShareBps ?? this.defaultFeeShareBps;
+
     // API returns array directly
     const routes = await this.apiClient.scanRoutes({
       params: {
@@ -46,6 +52,7 @@ export class QuoteService {
       providers: params.providers,
       feeFromAmount: params.feeFromAmount,
       feeToken: params.feeToken,
+      feeShareBps,
     });
 
     if (!routes || routes.length === 0) {

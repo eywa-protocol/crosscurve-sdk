@@ -263,4 +263,62 @@ describe('QuoteService', () => {
       await expect(service.getQuote(validParams)).rejects.toThrow('API Error');
     });
   });
+
+  describe('feeShareBps parameter', () => {
+    it('should pass feeShareBps to scanRoutes when provided', async () => {
+      mockApiClient.scanRoutes.mockResolvedValue([crossChainQuote]);
+
+      await service.getQuote({
+        ...validParams,
+        feeShareBps: 50,
+      });
+
+      expect(mockApiClient.scanRoutes).toHaveBeenCalledWith(
+        expect.objectContaining({
+          feeShareBps: 50,
+        })
+      );
+    });
+
+    it('should not include feeShareBps when not provided', async () => {
+      mockApiClient.scanRoutes.mockResolvedValue([crossChainQuote]);
+
+      await service.getQuote(validParams);
+
+      expect(mockApiClient.scanRoutes).toHaveBeenCalledWith(
+        expect.objectContaining({
+          feeShareBps: undefined,
+        })
+      );
+    });
+
+    it('should use defaultFeeShareBps when per-request feeShareBps not provided', async () => {
+      mockApiClient.scanRoutes.mockResolvedValue([crossChainQuote]);
+      const serviceWithDefault = new QuoteService(mockApiClient as IApiClient, 100);
+
+      await serviceWithDefault.getQuote(validParams);
+
+      expect(mockApiClient.scanRoutes).toHaveBeenCalledWith(
+        expect.objectContaining({
+          feeShareBps: 100,
+        })
+      );
+    });
+
+    it('should override defaultFeeShareBps with per-request feeShareBps', async () => {
+      mockApiClient.scanRoutes.mockResolvedValue([crossChainQuote]);
+      const serviceWithDefault = new QuoteService(mockApiClient as IApiClient, 100);
+
+      await serviceWithDefault.getQuote({
+        ...validParams,
+        feeShareBps: 50,
+      });
+
+      expect(mockApiClient.scanRoutes).toHaveBeenCalledWith(
+        expect.objectContaining({
+          feeShareBps: 50,
+        })
+      );
+    });
+  });
 });
