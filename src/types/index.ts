@@ -17,6 +17,7 @@ export type {
   RecoveryInfo,
   TransactionEvent,
   TransactionMetadata,
+  CalldataOnlyResponse,
 } from './transaction.js';
 export type { RecoveryOptions, RecoveryType } from './recovery.js';
 

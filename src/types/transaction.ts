@@ -171,3 +171,16 @@ export interface TransactionStatus {
   /** SDK-generated warnings */
   warning?: TransactionWarning;
 }
+
+/**
+ * Response from calldataOnly transaction creation mode
+ * Returns raw calldata for integrators who manage their own tx submission
+ */
+export interface CalldataOnlyResponse {
+  to: string;
+  data: string;
+  value: string;
+  chainId: number;
+  feeToken: string;
+  executionPrice: string;
+}

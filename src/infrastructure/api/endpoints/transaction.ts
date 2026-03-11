@@ -8,6 +8,7 @@ import type {
   TxCreateResponse,
   TransactionGetResponse,
 } from '../../../types/api/index.js';
+import type { CalldataOnlyResponse } from '../../../types/transaction.js';
 
 /**
  * Create transaction calldata
@@ -18,6 +19,17 @@ export async function createTransaction(
   request: TxCreateRequest
 ): Promise<TxCreateResponse> {
   return client.post<TxCreateResponse>('/tx/create', request);
+}
+
+/**
+ * Create calldataOnly transaction
+ * POST /tx/create with calldataOnly: true
+ */
+export async function createCalldataOnly(
+  client: HttpClient,
+  request: TxCreateRequest
+): Promise<CalldataOnlyResponse> {
+  return client.post<CalldataOnlyResponse>('/tx/create', { ...request, calldataOnly: true });
 }
 
 /**

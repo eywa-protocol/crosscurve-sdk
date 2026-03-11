@@ -10,6 +10,7 @@ import type {
   TxCreateRetryRequest,
   TransactionGetResponse,
 } from '../../types/api/index.js';
+import type { CalldataOnlyResponse } from '../../types/transaction.js';
 
 /**
  * Interface for transaction operations
@@ -32,6 +33,12 @@ export interface ITransactionApi {
    * POST /tx/create/retry
    */
   createRetryTransaction(request: TxCreateRetryRequest): Promise<TxCreateResponse>;
+
+  /**
+   * Create calldataOnly transaction
+   * POST /tx/create with calldataOnly: true
+   */
+  createCalldataOnly(request: TxCreateRequest): Promise<CalldataOnlyResponse>;
 
   /**
    * Get transaction status

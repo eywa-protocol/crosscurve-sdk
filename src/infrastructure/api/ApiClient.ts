@@ -21,7 +21,7 @@ import type {
   DiscoverRequest,
   TokenReference,
 } from '../../types/api/index.js';
-import type { StreamedRoute } from '../../types/index.js';
+import type { StreamedRoute, CalldataOnlyResponse } from '../../types/index.js';
 import { HttpClient } from './client/index.js';
 import * as endpoints from './endpoints/index.js';
 
@@ -73,6 +73,10 @@ export class ApiClient implements IApiClient {
 
   async createTransaction(request: TxCreateRequest): Promise<TxCreateResponse> {
     return endpoints.createTransaction(this.httpClient, request);
+  }
+
+  async createCalldataOnly(request: TxCreateRequest): Promise<CalldataOnlyResponse> {
+    return endpoints.createCalldataOnly(this.httpClient, request);
   }
 
   async createEmergencyTransaction(request: TxCreateEmergencyRequest): Promise<TxCreateResponse> {

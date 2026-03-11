@@ -7,6 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TxScope } from '../../../../src/application/scopes/TxScope.js';
 import type { IApiClient } from '../../../../src/domain/interfaces/index.js';
 import type { TxCreateRequest, TxCreateResponse } from '../../../../src/types/api/index.js';
+import type { CalldataOnlyResponse } from '../../../../src/types/transaction.js';
 import { createMockApiClient } from '../../../mocks/MockApiClient.js';
 import { crossChainQuote } from '../../../fixtures/quotes.js';
 
@@ -114,6 +115,29 @@ describe('TxScope', () => {
       };
 
       await expect(scope.create(request)).rejects.toThrow('Invalid routing');
+    });
+  });
+
+  describe('createCalldata', () => {
+    it('sends calldataOnly:true and returns CalldataOnlyResponse', async () => {
+      const response: CalldataOnlyResponse = {
+        to: '0x1234567890123456789012345678901234567890',
+        data: '0xabcdef',
+        value: '0',
+        chainId: 42161,
+        feeToken: '0x1234567890123456789012345678901234567890',
+        executionPrice: '1000',
+      };
+      mockApiClient.createCalldataOnly.mockResolvedValue(response);
+
+      const result = await scope.createCalldata({
+        from: '0x1234567890123456789012345678901234567890',
+        recipient: '0x1234567890123456789012345678901234567890',
+        routing: {} as any,
+      });
+
+      expect(result.chainId).toBe(42161);
+      expect(result.executionPrice).toBe('1000');
     });
   });
 

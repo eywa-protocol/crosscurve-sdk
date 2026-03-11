@@ -5,6 +5,7 @@
 
 import type { IApiClient } from '../../domain/interfaces/index.js';
 import type { TxCreateRequest, TxCreateResponse } from '../../types/api/index.js';
+import type { CalldataOnlyResponse } from '../../types/transaction.js';
 
 /**
  * Transaction scope: sdk.tx.*
@@ -18,6 +19,14 @@ export class TxScope {
    */
   async create(request: TxCreateRequest): Promise<TxCreateResponse> {
     return this.apiClient.createTransaction(request);
+  }
+
+  /**
+   * Create calldataOnly transaction
+   * Returns raw calldata for integrators managing their own tx submission
+   */
+  async createCalldata(request: TxCreateRequest): Promise<CalldataOnlyResponse> {
+    return this.apiClient.createCalldataOnly(request);
   }
 
   /**
