@@ -212,4 +212,106 @@ describe('HttpClient', () => {
       await expect(client.get('/test')).rejects.toThrow(ApiError);
     });
   });
+
+  describe('streamNdjson', () => {
+    it('yields parsed JSON objects from NDJSON stream', async () => {
+      const lines = ['{"a":1}\n', '{"b":2}\n'];
+      const stream = new ReadableStream({
+        start(controller) {
+          lines.forEach(l => controller.enqueue(new TextEncoder().encode(l)));
+          controller.close();
+        },
+      });
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, body: stream });
+
+      const results: unknown[] = [];
+      for await (const item of client.streamNdjson('/test', {})) {
+        results.push(item);
+      }
+      expect(results).toEqual([{ a: 1 }, { b: 2 }]);
+    });
+
+    it('throws ApiError on non-200 response', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error',
+        text: async () => 'fail',
+      });
+
+      await expect(async () => {
+        for await (const _ of client.streamNdjson('/test', {})) { /* */ }
+      }).rejects.toThrow(ApiError);
+    });
+
+    it('skips malformed lines and yields error object', async () => {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('not json\n'));
+          controller.enqueue(new TextEncoder().encode('{"ok":true}\n'));
+          controller.close();
+        },
+      });
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, body: stream });
+
+      const results: unknown[] = [];
+      for await (const item of client.streamNdjson('/test', {})) {
+        results.push(item);
+      }
+      expect(results).toHaveLength(2);
+      expect(results[0]).toHaveProperty('error');
+      expect(results[1]).toEqual({ ok: true });
+    });
+
+    it('handles chunks split across line boundaries', async () => {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('{"a":'));
+          controller.enqueue(new TextEncoder().encode('1}\n{"b":2}\n'));
+          controller.close();
+        },
+      });
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, body: stream });
+
+      const results: unknown[] = [];
+      for await (const item of client.streamNdjson('/test', {})) {
+        results.push(item);
+      }
+      expect(results).toEqual([{ a: 1 }, { b: 2 }]);
+    });
+
+    it('handles empty body gracefully', async () => {
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, body: null });
+
+      const results: unknown[] = [];
+      for await (const item of client.streamNdjson('/test', {})) {
+        results.push(item);
+      }
+      expect(results).toEqual([]);
+    });
+
+    it('sends POST with JSON body and partner headers', async () => {
+      const clientWithKey = new HttpClient({ baseUrl, apiKey: 'test-key' });
+      const stream = new ReadableStream({
+        start(controller) { controller.close(); },
+      });
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, body: stream });
+
+      const body = { params: { foo: 'bar' } };
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      for await (const _ of clientWithKey.streamNdjson('/test', body)) { /* */ }
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        `${baseUrl}/test`,
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify(body),
+          headers: expect.objectContaining({
+            'Content-Type': 'application/json',
+            'api-key': 'test-key',
+          }),
+        })
+      );
+    });
+  });
 });

@@ -74,6 +74,74 @@ export class HttpClient {
   }
 
   /**
+   * Stream NDJSON (newline-delimited JSON) from a POST endpoint.
+   * Yields parsed objects as they arrive. No retry — streams are not idempotent.
+   * Malformed lines yield { error: string } instead of throwing.
+   */
+  async *streamNdjson<T>(
+    path: string,
+    body: unknown,
+    signal?: AbortSignal,
+  ): AsyncGenerator<T | { error: string }> {
+    const url = RequestBuilder.buildUrl(this.config.baseUrl, path, undefined, this.securityOptions);
+    const headers = {
+      'Content-Type': 'application/json',
+      ...RequestBuilder.buildPartnerHeaders(this.config.apiKey),
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal,
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      throw new ApiError(`HTTP ${response.status}: ${response.statusText}`, response.status, text);
+    }
+
+    if (!response.body) {
+      return;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          try {
+            yield JSON.parse(trimmed) as T;
+          } catch {
+            yield { error: `parse error: ${trimmed}` };
+          }
+        }
+      }
+
+      if (buffer.trim()) {
+        try {
+          yield JSON.parse(buffer.trim()) as T;
+        } catch {
+          yield { error: `parse error: ${buffer.trim()}` };
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  /**
    * Fetch with timeout
    */
   private async fetchWithTimeout<T>(url: string, options: RequestInit): Promise<T> {
