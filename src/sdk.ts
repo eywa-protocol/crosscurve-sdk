@@ -21,6 +21,7 @@ import {
   TxScope,
   TrackingScope,
   InconsistencyScope,
+  PricesScope,
 } from './application/scopes/index.js';
 import type {
   Chain,
@@ -75,6 +76,8 @@ export class CrossCurveSDK {
   public readonly tx: TxScope;
   public readonly tracking: TrackingScope;
   public readonly inconsistency: InconsistencyScope;
+
+  private _prices?: PricesScope;
 
   private _chains: Chain[] = [];
   private _tokens: Map<number, Token[]> = new Map();
@@ -150,6 +153,13 @@ export class CrossCurveSDK {
     this.tx = new TxScope(this.apiClient);
     this.tracking = new TrackingScope(this.apiClient, this.trackingService);
     this.inconsistency = new InconsistencyScope(this.apiClient);
+  }
+
+  get prices(): PricesScope {
+    if (!this._prices) {
+      this._prices = new PricesScope(this.apiClient);
+    }
+    return this._prices;
   }
 
   /**

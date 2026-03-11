@@ -8,3 +8,4 @@ export { createEmergencyTransaction, createRetryTransaction } from './recovery.j
 export { getInconsistencyParams, createInconsistency } from './inconsistency.js';
 export { searchTransactions } from './search.js';
 export { getNetworks, getChainList, getTokenList, transformToChains } from './networks.js';
+export { getPrice } from './prices.js';

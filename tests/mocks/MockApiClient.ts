@@ -41,6 +41,7 @@ export function createMockApiClient(): IApiClient & {
   getChainList: ReturnType<typeof vi.fn>;
   submitExternal: ReturnType<typeof vi.fn>;
   discover: ReturnType<typeof vi.fn>;
+  getPrice: ReturnType<typeof vi.fn>;
 } {
   return {
     scanRoutes: vi.fn<[RoutingScanRequest], Promise<RoutingScanResponse>>(),
@@ -57,6 +58,7 @@ export function createMockApiClient(): IApiClient & {
     getChainList: vi.fn<[], Promise<ChainListResponse>>(),
     submitExternal: vi.fn<[SubmitExternalParams], Promise<SubmitExternalResponse>>(),
     discover: vi.fn<[DiscoverRequest], Promise<TokenReference[]>>(),
+    getPrice: vi.fn<[string, number], Promise<string>>(),
   };
 }
 

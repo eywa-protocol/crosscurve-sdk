@@ -118,4 +118,8 @@ export class ApiClient implements IApiClient {
   async discover(request: DiscoverRequest): Promise<TokenReference[]> {
     return endpoints.discover(this.httpClient, request);
   }
+
+  async getPrice(token: string, chainId: number): Promise<string> {
+    return endpoints.getPrice(this.httpClient, token, chainId);
+  }
 }

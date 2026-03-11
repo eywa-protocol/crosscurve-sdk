@@ -8,6 +8,7 @@ import type { ITransactionApi } from './ITransactionApi.js';
 import type { ISearchApi } from './ISearchApi.js';
 import type { IInconsistencyApi } from './IInconsistencyApi.js';
 import type { IDataApi } from './IDataApi.js';
+import type { IPricesApi } from './IPricesApi.js';
 
 /**
  * Composed API client interface for HTTP operations
@@ -19,6 +20,7 @@ import type { IDataApi } from './IDataApi.js';
  * - ISearchApi: Transaction search operations
  * - IInconsistencyApi: Inconsistency resolution operations
  * - IDataApi: Token and chain data operations
+ * - IPricesApi: Token price lookup operations
  *
  * Consumers can depend on specific sub-interfaces for narrower contracts.
  */
@@ -27,4 +29,5 @@ export interface IApiClient
     ITransactionApi,
     ISearchApi,
     IInconsistencyApi,
-    IDataApi {}
+    IDataApi,
+    IPricesApi {}

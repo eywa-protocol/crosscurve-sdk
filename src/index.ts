@@ -3,6 +3,7 @@
  */
 
 export { CrossCurveSDK } from './sdk.js';
+export { PricesScope } from './application/scopes/index.js';
 
 export {
   ViemAdapter,
