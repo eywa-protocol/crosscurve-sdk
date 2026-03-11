@@ -129,6 +129,9 @@ export class HttpClient {
         }
       }
 
+      // Flush any remaining bytes held by the decoder
+      buffer += decoder.decode();
+
       if (buffer.trim()) {
         try {
           yield JSON.parse(buffer.trim()) as T;
@@ -137,6 +140,7 @@ export class HttpClient {
         }
       }
     } finally {
+      reader.cancel().catch(() => {});
       reader.releaseLock();
     }
   }
