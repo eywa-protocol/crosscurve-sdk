@@ -13,6 +13,16 @@ import type { Chain, Token } from '../../../types/index.js';
 import { getChainMeta } from '../../../constants/chainMetadata.js';
 
 /**
+ * Convert chain ID to CAIP-2 identifier
+ * Non-EVM chains use their own namespaces
+ */
+export function toCaip2(chainId: number): string {
+  if (chainId === 7565164) return 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
+  if (chainId === 728126428) return 'tron:mainnet';
+  return `eip155:${chainId}`;
+}
+
+/**
  * Fetch raw networks data from API
  * GET /networks
  */
@@ -29,7 +39,7 @@ export function transformToChains(networks: NetworksApiResponse): Chain[] {
     return {
       id: data.chainId,
       name: data.name,
-      caip2: `eip155:${data.chainId}`,
+      caip2: toCaip2(data.chainId),
       rpcUrl: data.rpcPublic || (data.rpcHttp?.[0] ?? ''),
       explorerUrl: meta.explorerUrl,
       nativeCurrency: meta.nativeCurrency,

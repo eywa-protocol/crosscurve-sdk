@@ -20,6 +20,7 @@ import type {
   ApprovalMode,
   RouteStep,
 } from '../../types/index.js';
+import { ChainId } from '../../constants/chains.js';
 import { RouteProvider, type RouteProviderValue } from '../../constants/providers.js';
 import { pollWithCallback } from '../../utils/polling.js';
 import { validateAddress } from '../../utils/validation.js';
@@ -33,6 +34,8 @@ import {
 import { TransactionError } from '../../errors/index.js';
 import { ValidationError } from '../../infrastructure/api/errors/index.js';
 import type { PollingConfig } from '../../types/config.js';
+
+const NON_EVM_CHAINS = new Set([ChainId.SOLANA, ChainId.TRON]);
 
 /**
  * Maximum gas limit (30M - typical block gas limit)
@@ -151,6 +154,14 @@ export class ExecuteService {
   async executeQuote(quote: Quote, options: ExecuteOptions): Promise<ExecuteResult> {
     // Validate gas parameters first
     this.validateGasParams(options);
+
+    // Guard: non-EVM chains cannot be executed through the SDK
+    const sourceChainId = this.getSourceChainId(quote);
+    if (sourceChainId && NON_EVM_CHAINS.has(sourceChainId)) {
+      throw new ValidationError(
+        'Non-EVM quotes cannot be executed through the SDK. Use sdk.tx.submitExternal() after submitting the transaction with your chain-specific wallet.'
+      );
+    }
 
     const address = await options.signer.getAddress();
     const recipient = options.recipient ?? address;

@@ -5,6 +5,7 @@
 
 import type { IApiClient, ICache } from '../../domain/interfaces/index.js';
 import type { Token, Chain } from '../../types/index.js';
+import { normalizeAddress } from '../../utils/address.js';
 
 /**
  * Default cache TTL for tokens and chains (10 minutes)
@@ -79,7 +80,7 @@ export class TokenService {
     return allTokens.find(
       (token) =>
         token.chainId === chainId &&
-        token.address.toLowerCase() === address.toLowerCase()
+        normalizeAddress(token.address) === normalizeAddress(address)
     );
   }
 

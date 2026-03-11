@@ -16,6 +16,8 @@ export const ChainId = {
   ARBITRUM: 42161,
   AVALANCHE: 43114,
   BASE: 8453,
+  SOLANA: 7565164,
+  TRON: 728126428,
 } as const;
 
 /**
