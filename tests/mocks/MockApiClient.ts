@@ -19,12 +19,14 @@ import type {
   TokenListResponse,
   ChainListResponse,
 } from '../../src/types/api/index.js';
+import type { StreamedRoute } from '../../src/types/index.js';
 
 /**
  * Creates a mock IApiClient with all methods mocked
  */
 export function createMockApiClient(): IApiClient & {
   scanRoutes: ReturnType<typeof vi.fn>;
+  scanRoutesStream: ReturnType<typeof vi.fn>;
   createTransaction: ReturnType<typeof vi.fn>;
   createEmergencyTransaction: ReturnType<typeof vi.fn>;
   createRetryTransaction: ReturnType<typeof vi.fn>;
@@ -37,6 +39,7 @@ export function createMockApiClient(): IApiClient & {
 } {
   return {
     scanRoutes: vi.fn<[RoutingScanRequest], Promise<RoutingScanResponse>>(),
+    scanRoutesStream: vi.fn<[RoutingScanRequest, AbortSignal?], AsyncIterable<StreamedRoute>>(),
     createTransaction: vi.fn<[TxCreateRequest], Promise<TxCreateResponse>>(),
     createEmergencyTransaction: vi.fn<[TxCreateEmergencyRequest], Promise<TxCreateResponse>>(),
     createRetryTransaction: vi.fn<[TxCreateRetryRequest], Promise<TxCreateResponse>>(),

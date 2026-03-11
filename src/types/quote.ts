@@ -194,3 +194,12 @@ export interface Quote {
     deadline: number;
   };
 }
+
+/**
+ * A single item from a streaming route scan
+ * Each item is either a successful quote or an error
+ */
+export interface StreamedRoute {
+  quote?: Quote;
+  error?: string;
+}

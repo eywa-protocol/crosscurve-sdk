@@ -4,7 +4,7 @@
  */
 
 import type { IApiClient } from '../../domain/interfaces/index.js';
-import type { Quote } from '../../types/index.js';
+import type { Quote, StreamedRoute } from '../../types/index.js';
 import type { RoutingScanRequest } from '../../types/api/index.js';
 
 /**
@@ -20,5 +20,13 @@ export class RoutingScope {
   async scan(request: RoutingScanRequest): Promise<Quote[]> {
     // API returns array directly
     return this.apiClient.scanRoutes(request);
+  }
+
+  /**
+   * Scan for routes via NDJSON stream
+   * POST /routing/scan/stream
+   */
+  async *scanStream(request: RoutingScanRequest, signal?: AbortSignal): AsyncIterable<StreamedRoute> {
+    yield* this.apiClient.scanRoutesStream(request, signal);
   }
 }

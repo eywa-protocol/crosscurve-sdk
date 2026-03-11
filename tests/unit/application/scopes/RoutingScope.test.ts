@@ -7,8 +7,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RoutingScope } from '../../../../src/application/scopes/RoutingScope.js';
 import type { IApiClient } from '../../../../src/domain/interfaces/index.js';
 import type { RoutingScanRequest } from '../../../../src/types/api/index.js';
+import type { StreamedRoute } from '../../../../src/types/index.js';
 import { createMockApiClient } from '../../../mocks/MockApiClient.js';
-import { crossChainQuote, rubicQuote, bungeeQuote } from '../../../fixtures/quotes.js';
+import { crossChainQuote, createMockQuote, rubicQuote, bungeeQuote } from '../../../fixtures/quotes.js';
 
 describe('RoutingScope', () => {
   let mockApiClient: ReturnType<typeof createMockApiClient>;
@@ -120,6 +121,93 @@ describe('RoutingScope', () => {
       };
 
       await expect(scope.scan(request)).rejects.toThrow('API Error');
+    });
+  });
+
+  describe('scanStream', () => {
+    const request: RoutingScanRequest = {
+      params: {
+        tokenIn: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
+        amountIn: '1000000000',
+        chainIdIn: 42161,
+        tokenOut: '0x7F5c764cBc14f9669B88837ca1490cCa17c31607',
+        chainIdOut: 10,
+      },
+      slippage: 0.5,
+      from: '0x750035FeeAd93D8e56656d0E1f398fBa3b3866D5',
+    };
+
+    it('should yield StreamedRoute objects from NDJSON stream', async () => {
+      const mockQuote = createMockQuote();
+      const mockStream = async function* () {
+        yield { quote: mockQuote } as StreamedRoute;
+        yield { error: 'simulation failed' } as StreamedRoute;
+      };
+      mockApiClient.scanRoutesStream = vi.fn().mockReturnValue(mockStream());
+
+      const results: StreamedRoute[] = [];
+      for await (const item of scope.scanStream(request)) {
+        results.push(item);
+      }
+
+      expect(results).toHaveLength(2);
+      expect(results[0].quote).toBeDefined();
+      expect(results[0].quote).toEqual(mockQuote);
+      expect(results[1].error).toBe('simulation failed');
+    });
+
+    it('should pass request and signal to apiClient', async () => {
+      const controller = new AbortController();
+      const mockStream = async function* () {
+        // empty stream
+      };
+      mockApiClient.scanRoutesStream = vi.fn().mockReturnValue(mockStream());
+
+      const results: StreamedRoute[] = [];
+      for await (const item of scope.scanStream(request, controller.signal)) {
+        results.push(item);
+      }
+
+      expect(mockApiClient.scanRoutesStream).toHaveBeenCalledWith(request, controller.signal);
+      expect(results).toHaveLength(0);
+    });
+
+    it('should handle stream with only quotes', async () => {
+      const quote1 = createMockQuote({ amountOut: '990000' });
+      const quote2 = createMockQuote({ amountOut: '980000' });
+      const mockStream = async function* () {
+        yield { quote: quote1 } as StreamedRoute;
+        yield { quote: quote2 } as StreamedRoute;
+      };
+      mockApiClient.scanRoutesStream = vi.fn().mockReturnValue(mockStream());
+
+      const results: StreamedRoute[] = [];
+      for await (const item of scope.scanStream(request)) {
+        results.push(item);
+      }
+
+      expect(results).toHaveLength(2);
+      expect(results[0].quote).toEqual(quote1);
+      expect(results[1].quote).toEqual(quote2);
+      expect(results.every(r => r.error === undefined)).toBe(true);
+    });
+
+    it('should handle stream with only errors', async () => {
+      const mockStream = async function* () {
+        yield { error: 'provider timeout' } as StreamedRoute;
+        yield { error: 'rate limited' } as StreamedRoute;
+      };
+      mockApiClient.scanRoutesStream = vi.fn().mockReturnValue(mockStream());
+
+      const results: StreamedRoute[] = [];
+      for await (const item of scope.scanStream(request)) {
+        results.push(item);
+      }
+
+      expect(results).toHaveLength(2);
+      expect(results[0].error).toBe('provider timeout');
+      expect(results[1].error).toBe('rate limited');
+      expect(results.every(r => r.quote === undefined)).toBe(true);
     });
   });
 });

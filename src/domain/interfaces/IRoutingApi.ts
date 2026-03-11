@@ -7,6 +7,7 @@ import type {
   RoutingScanRequest,
   RoutingScanResponse,
 } from '../../types/api/index.js';
+import type { StreamedRoute } from '../../types/index.js';
 
 /**
  * Interface for routing operations
@@ -17,4 +18,10 @@ export interface IRoutingApi {
    * POST /routing/scan
    */
   scanRoutes(request: RoutingScanRequest): Promise<RoutingScanResponse>;
+
+  /**
+   * Scan for available routes via NDJSON stream
+   * POST /routing/scan/stream
+   */
+  scanRoutesStream(request: RoutingScanRequest, signal?: AbortSignal): AsyncIterable<StreamedRoute>;
 }

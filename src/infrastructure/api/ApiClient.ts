@@ -19,6 +19,7 @@ import type {
   TokenListResponse,
   ChainListResponse,
 } from '../../types/api/index.js';
+import type { StreamedRoute } from '../../types/index.js';
 import { HttpClient } from './client/index.js';
 import * as endpoints from './endpoints/index.js';
 
@@ -62,6 +63,10 @@ export class ApiClient implements IApiClient {
 
   async scanRoutes(request: RoutingScanRequest): Promise<RoutingScanResponse> {
     return endpoints.scanRoutes(this.httpClient, request);
+  }
+
+  async *scanRoutesStream(request: RoutingScanRequest, signal?: AbortSignal): AsyncIterable<StreamedRoute> {
+    yield* endpoints.scanRoutesStream(this.httpClient, request, signal);
   }
 
   async createTransaction(request: TxCreateRequest): Promise<TxCreateResponse> {
