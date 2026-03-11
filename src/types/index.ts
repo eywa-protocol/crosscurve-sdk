@@ -23,5 +23,14 @@ export type {
 } from './transaction.js';
 export type { RecoveryOptions, RecoveryType } from './recovery.js';
 export type { RunnerStatus } from './runner.js';
+export type {
+  WalletType,
+  AAGasMode,
+  AACreateTxParams,
+  AATransaction,
+  AACall,
+  JsonRpcRequest,
+  JsonRpcResponse,
+} from './aa.js';
 
 export * from './api/index.js';

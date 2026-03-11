@@ -26,3 +26,5 @@ export type {
   ApprovalTokenInfo,
   PermitSignature,
 } from './IApprovalService.js';
+export type { IAAApi } from './IAAApi.js';
+export type { IPimlicoApi } from './IPimlicoApi.js';
