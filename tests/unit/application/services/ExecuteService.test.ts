@@ -7,6 +7,7 @@ import { ExecuteService } from '../../../../src/application/services/ExecuteServ
 import type { IApiClient, ITrackingService, IRecoveryService, IApprovalService } from '../../../../src/domain/interfaces/index.js';
 import { createMockApiClient, mockResponses } from '../../../mocks/MockApiClient.js';
 import { createMockSigner, createMockTxResponseWithRequestId, TEST_ADDRESS } from '../../../mocks/MockSigner.js';
+import { createMockQuote } from '../../../fixtures/quotes.js';
 import { createMockTrackingService, mockStatuses } from '../../../mocks/MockTrackingService.js';
 import { createMockRecoveryService } from '../../../mocks/MockRecoveryService.js';
 import { createMockApprovalService } from '../../../mocks/MockApprovalService.js';
@@ -455,6 +456,46 @@ describe('ExecuteService', () => {
       await expect(
         service.executeQuote(crossChainQuote, { signer: mockSigner })
       ).rejects.toThrow('Transaction failed');
+    });
+  });
+
+  describe('non-EVM execution guard', () => {
+    it('rejects Solana quotes with ValidationError', async () => {
+      const solanaQuote = createMockQuote({
+        route: [{
+          provider: 'cross-curve' as any,
+          fromChainId: 7565164,
+          toChainId: 42161,
+          fromToken: { address: 'So11111111111111111111111111111111111111112', symbol: 'SOL', decimals: 9, chainId: 7565164 } as any,
+          toToken: { address: '0x0000000000000000000000000000000000000000', symbol: 'ETH', decimals: 18, chainId: 42161 } as any,
+          amountIn: '1000000000',
+          amountOut: '500000000',
+        }],
+      });
+      const mockSigner = createMockSigner();
+
+      await expect(
+        service.executeQuote(solanaQuote, { signer: mockSigner })
+      ).rejects.toThrow('Non-EVM quotes cannot be executed through the SDK');
+    });
+
+    it('rejects Tron quotes with ValidationError', async () => {
+      const tronQuote = createMockQuote({
+        route: [{
+          provider: 'cross-curve' as any,
+          fromChainId: 728126428,
+          toChainId: 42161,
+          fromToken: { address: 'TJYJx5eKXMa9LPMz5VgRzYHjZ3jGxGqRXh', symbol: 'TRX', decimals: 6, chainId: 728126428 } as any,
+          toToken: { address: '0x0000000000000000000000000000000000000000', symbol: 'ETH', decimals: 18, chainId: 42161 } as any,
+          amountIn: '1000000',
+          amountOut: '500000',
+        }],
+      });
+      const mockSigner = createMockSigner();
+
+      await expect(
+        service.executeQuote(tronQuote, { signer: mockSigner })
+      ).rejects.toThrow('Non-EVM quotes cannot be executed through the SDK');
     });
   });
 
