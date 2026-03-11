@@ -140,7 +140,7 @@ export class CrossCurveSDK {
       this.recoveryService,
       this.approvalService,
       this.config.approvalMode,
-      this.config.permit?.enabled ?? false,
+      this.config.permit.enabled,
       (chainId) => this._chains.find((c) => c.id === chainId)?.router,
       this.config.bridgePolling
     );

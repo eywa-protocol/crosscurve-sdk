@@ -148,6 +148,10 @@ export function validateConfig(config: SDKConfig): void {
     throw new Error('permitDeadlineSeconds must be positive');
   }
 
+  if (config.permit.deadlineSeconds <= 0) {
+    throw new Error('permit.deadlineSeconds must be positive');
+  }
+
   // Validate security config
   if (config.security.allowedHosts.length === 0) {
     throw new Error('security.allowedHosts must contain at least one host');
