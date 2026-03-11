@@ -18,6 +18,8 @@ export type {
   TransactionEvent,
   TransactionMetadata,
   CalldataOnlyResponse,
+  SubmitExternalParams,
+  SubmitExternalResponse,
 } from './transaction.js';
 export type { RecoveryOptions, RecoveryType } from './recovery.js';
 

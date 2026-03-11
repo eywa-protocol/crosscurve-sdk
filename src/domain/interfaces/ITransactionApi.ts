@@ -10,7 +10,7 @@ import type {
   TxCreateRetryRequest,
   TransactionGetResponse,
 } from '../../types/api/index.js';
-import type { CalldataOnlyResponse } from '../../types/transaction.js';
+import type { CalldataOnlyResponse, SubmitExternalParams, SubmitExternalResponse } from '../../types/transaction.js';
 
 /**
  * Interface for transaction operations
@@ -45,4 +45,10 @@ export interface ITransactionApi {
    * GET /transaction/{requestId}
    */
   getTransaction(requestId: string): Promise<TransactionGetResponse>;
+
+  /**
+   * Register an external transaction for tracking
+   * POST /tx/submitted
+   */
+  submitExternal(params: SubmitExternalParams): Promise<SubmitExternalResponse>;
 }

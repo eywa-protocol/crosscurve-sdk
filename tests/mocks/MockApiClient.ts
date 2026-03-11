@@ -21,7 +21,7 @@ import type {
   DiscoverRequest,
   TokenReference,
 } from '../../src/types/api/index.js';
-import type { StreamedRoute, CalldataOnlyResponse } from '../../src/types/index.js';
+import type { StreamedRoute, CalldataOnlyResponse, SubmitExternalParams, SubmitExternalResponse } from '../../src/types/index.js';
 
 /**
  * Creates a mock IApiClient with all methods mocked
@@ -39,6 +39,7 @@ export function createMockApiClient(): IApiClient & {
   createInconsistency: ReturnType<typeof vi.fn>;
   getTokenList: ReturnType<typeof vi.fn>;
   getChainList: ReturnType<typeof vi.fn>;
+  submitExternal: ReturnType<typeof vi.fn>;
   discover: ReturnType<typeof vi.fn>;
 } {
   return {
@@ -54,6 +55,7 @@ export function createMockApiClient(): IApiClient & {
     createInconsistency: vi.fn<[InconsistencyCreateRequest], Promise<InconsistencyCreateResponse>>(),
     getTokenList: vi.fn<[], Promise<TokenListResponse>>(),
     getChainList: vi.fn<[], Promise<ChainListResponse>>(),
+    submitExternal: vi.fn<[SubmitExternalParams], Promise<SubmitExternalResponse>>(),
     discover: vi.fn<[DiscoverRequest], Promise<TokenReference[]>>(),
   };
 }

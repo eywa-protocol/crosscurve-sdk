@@ -21,7 +21,7 @@ import type {
   DiscoverRequest,
   TokenReference,
 } from '../../types/api/index.js';
-import type { StreamedRoute, CalldataOnlyResponse } from '../../types/index.js';
+import type { StreamedRoute, CalldataOnlyResponse, SubmitExternalParams, SubmitExternalResponse } from '../../types/index.js';
 import { HttpClient } from './client/index.js';
 import * as endpoints from './endpoints/index.js';
 
@@ -89,6 +89,10 @@ export class ApiClient implements IApiClient {
 
   async getTransaction(requestId: string): Promise<TransactionGetResponse> {
     return endpoints.getTransaction(this.httpClient, requestId);
+  }
+
+  async submitExternal(params: SubmitExternalParams): Promise<SubmitExternalResponse> {
+    return endpoints.submitExternal(this.httpClient, params);
   }
 
   async searchTransactions(query: string): Promise<SearchResponse> {

@@ -8,7 +8,7 @@ import type {
   TxCreateResponse,
   TransactionGetResponse,
 } from '../../../types/api/index.js';
-import type { CalldataOnlyResponse } from '../../../types/transaction.js';
+import type { CalldataOnlyResponse, SubmitExternalParams, SubmitExternalResponse } from '../../../types/transaction.js';
 
 /**
  * Create transaction calldata
@@ -41,4 +41,15 @@ export async function getTransaction(
   requestId: string
 ): Promise<TransactionGetResponse> {
   return client.get<TransactionGetResponse>(`/transaction/${requestId}`);
+}
+
+/**
+ * Register an external transaction for tracking
+ * POST /tx/submitted
+ */
+export async function submitExternal(
+  client: HttpClient,
+  params: SubmitExternalParams
+): Promise<SubmitExternalResponse> {
+  return client.post<SubmitExternalResponse>('/tx/submitted', params);
 }

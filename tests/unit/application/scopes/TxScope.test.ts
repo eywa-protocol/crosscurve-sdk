@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TxScope } from '../../../../src/application/scopes/TxScope.js';
 import type { IApiClient } from '../../../../src/domain/interfaces/index.js';
 import type { TxCreateRequest, TxCreateResponse } from '../../../../src/types/api/index.js';
-import type { CalldataOnlyResponse } from '../../../../src/types/transaction.js';
+import type { CalldataOnlyResponse, SubmitExternalResponse } from '../../../../src/types/transaction.js';
 import { createMockApiClient } from '../../../mocks/MockApiClient.js';
 import { crossChainQuote } from '../../../fixtures/quotes.js';
 
@@ -232,6 +232,20 @@ describe('TxScope', () => {
       await expect(scope.createRetry(testRequestId, testSignature)).rejects.toThrow(
         'Transaction not eligible for retry'
       );
+    });
+  });
+
+  describe('submitExternal', () => {
+    it('registers external transaction for tracking', async () => {
+      mockApiClient.submitExternal = vi.fn().mockResolvedValue({ requestId: '0xhash' });
+      const result = await scope.submitExternal({
+        txHash: '0xhash',
+        provider: 'rubic',
+        fromChainId: 1,
+        toChainId: 42161,
+        sender: '0x1234567890123456789012345678901234567890',
+      });
+      expect(result.requestId).toBe('0xhash');
     });
   });
 });

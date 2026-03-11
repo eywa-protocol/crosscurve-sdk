@@ -5,7 +5,7 @@
 
 import type { IApiClient } from '../../domain/interfaces/index.js';
 import type { TxCreateRequest, TxCreateResponse } from '../../types/api/index.js';
-import type { CalldataOnlyResponse } from '../../types/transaction.js';
+import type { CalldataOnlyResponse, SubmitExternalParams, SubmitExternalResponse } from '../../types/transaction.js';
 
 /**
  * Transaction scope: sdk.tx.*
@@ -49,5 +49,13 @@ export class TxScope {
       requestId,
       signature,
     });
+  }
+
+  /**
+   * Register an external transaction for tracking
+   * POST /tx/submitted
+   */
+  async submitExternal(params: SubmitExternalParams): Promise<SubmitExternalResponse> {
+    return this.apiClient.submitExternal(params);
   }
 }

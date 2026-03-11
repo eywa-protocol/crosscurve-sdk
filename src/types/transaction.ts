@@ -184,3 +184,21 @@ export interface CalldataOnlyResponse {
   feeToken: string;
   executionPrice: string;
 }
+
+/**
+ * Parameters for registering an external transaction for tracking
+ */
+export interface SubmitExternalParams {
+  txHash: string;
+  provider: 'rubic' | 'bungee';
+  fromChainId: number;
+  toChainId: number;
+  sender: string;
+}
+
+/**
+ * Response from external transaction registration
+ */
+export interface SubmitExternalResponse {
+  requestId: string;
+}

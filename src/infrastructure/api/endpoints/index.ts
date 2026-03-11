@@ -3,7 +3,7 @@
  */
 
 export { scanRoutes, scanRoutesStream, discover } from './routing.js';
-export { createTransaction, createCalldataOnly, getTransaction } from './transaction.js';
+export { createTransaction, createCalldataOnly, getTransaction, submitExternal } from './transaction.js';
 export { createEmergencyTransaction, createRetryTransaction } from './recovery.js';
 export { getInconsistencyParams, createInconsistency } from './inconsistency.js';
 export { searchTransactions } from './search.js';
