@@ -24,4 +24,6 @@ export interface Chain {
   };
   /** CrossCurve router contract address (spender for approvals) */
   router: string;
+  /** Whether this chain is a hub chain in the CrossCurve protocol */
+  hubChain: boolean;
 }

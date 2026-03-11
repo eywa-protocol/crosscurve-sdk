@@ -10,6 +10,7 @@ import type {
   TokenListResponse,
 } from '../../../types/api/index.js';
 import type { Chain, Token } from '../../../types/index.js';
+import { getChainMeta } from '../../../constants/chainMetadata.js';
 
 /**
  * Fetch raw networks data from API
@@ -22,20 +23,20 @@ export async function getNetworks(client: HttpClient): Promise<NetworksApiRespon
 /**
  * Transform networks response to Chain array
  */
-function transformToChains(networks: NetworksApiResponse): Chain[] {
-  return Object.entries(networks).map(([, data]) => ({
-    id: data.chainId,
-    name: data.name,
-    caip2: `eip155:${data.chainId}`,
-    rpcUrl: data.rpcPublic || data.rpcHttp[0] || '',
-    explorerUrl: '',
-    nativeCurrency: {
-      name: 'Native',
-      symbol: 'ETH',
-      decimals: 18,
-    },
-    router: data.router,
-  }));
+export function transformToChains(networks: NetworksApiResponse): Chain[] {
+  return Object.values(networks).map((data) => {
+    const meta = getChainMeta(data.chainId);
+    return {
+      id: data.chainId,
+      name: data.name,
+      caip2: `eip155:${data.chainId}`,
+      rpcUrl: data.rpcPublic || (data.rpcHttp?.[0] ?? ''),
+      explorerUrl: meta.explorerUrl,
+      nativeCurrency: meta.nativeCurrency,
+      router: data.router,
+      hubChain: data.hubChain ?? false,
+    };
+  });
 }
 
 /**

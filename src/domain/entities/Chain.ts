@@ -21,6 +21,7 @@ export class ChainEntity implements IChain {
     decimals: number;
   };
   readonly router: string;
+  readonly hubChain: boolean;
 
   constructor(data: IChain) {
     this.id = data.id;
@@ -30,6 +31,7 @@ export class ChainEntity implements IChain {
     this.explorerUrl = data.explorerUrl;
     this.nativeCurrency = { ...data.nativeCurrency };
     this.router = data.router;
+    this.hubChain = data.hubChain;
   }
 
   /**

@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getNetworks, getChainList, getTokenList } from '../../../../../src/infrastructure/api/endpoints/networks.js';
+import { getNetworks, getChainList, getTokenList, transformToChains } from '../../../../../src/infrastructure/api/endpoints/networks.js';
 import type { HttpClient } from '../../../../../src/infrastructure/api/client/index.js';
 import type { NetworksApiResponse } from '../../../../../src/types/api/index.js';
 
@@ -189,6 +189,33 @@ describe('networks endpoints', () => {
       const chainIds = [...new Set(result.tokens.map((t) => t.chainId))];
       expect(chainIds).toContain(42161);
       expect(chainIds).toContain(10);
+    });
+  });
+
+  describe('transformToChains', () => {
+    it('uses chain metadata registry for known chains', () => {
+      const response = {
+        arbitrum: {
+          name: 'Arbitrum', chainId: 42161, rpcPublic: 'https://arb1.arbitrum.io/rpc',
+          rpcHttp: [], router: '0xRouter', hubChain: true, tokens: [],
+        },
+      };
+      const chains = transformToChains(response as any);
+      expect(chains[0].explorerUrl).toBe('https://arbiscan.io');
+      expect(chains[0].nativeCurrency.symbol).toBe('ETH');
+      expect(chains[0].hubChain).toBe(true);
+    });
+
+    it('falls back to defaults for unknown chains', () => {
+      const response = {
+        unknown: {
+          name: 'Unknown', chainId: 99999, rpcPublic: '', rpcHttp: [],
+          router: '0x0', hubChain: false, tokens: [],
+        },
+      };
+      const chains = transformToChains(response as any);
+      expect(chains[0].explorerUrl).toBe('');
+      expect(chains[0].nativeCurrency.symbol).toBe('ETH');
     });
   });
 });
