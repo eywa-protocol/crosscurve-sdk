@@ -132,6 +132,8 @@ export interface Quote {
   amountOut: string;
   /** Delivery fee details */
   deliveryFee: {
+    /** Fee token address */
+    token: string;
     /** Fee amount in wei */
     amount: string;
     /** Fee in USD */
@@ -141,4 +143,52 @@ export interface Quote {
   txs: TransactionInfo[];
   /** API signature for quote validation (expires in 5 minutes) */
   signature: string;
+
+  /** Output amount before slippage deduction (in wei) */
+  amountOutWithoutSlippage: string;
+  /** Price impact as a decimal (e.g., 0.01 = 1%) */
+  priceImpact: number;
+  /** Price of input token in USD */
+  tokenInPrice: number;
+  /** Price of output token in USD */
+  tokenOutPrice: number;
+  /** Source chain fee details */
+  sourceFee: {
+    /** Fee token address */
+    token: string;
+    /** Fee amount in wei */
+    amount: string;
+    /** Fee in USD */
+    usd: number;
+  };
+  /** Aggregated total fee */
+  totalFee: {
+    /** Fee type (e.g., 'fixed') */
+    type: string;
+    /** Fee percentage as string */
+    percent: string;
+    /** Total fee amount in wei */
+    amount: string;
+  };
+  /** Expected time to finality in seconds */
+  expectedFinalitySeconds: number;
+  /** Quote deadline as unix timestamp */
+  deadline: number;
+  /** Slippage tolerance applied to this quote */
+  slippage: number;
+  /** Fee share in basis points (partner commission) */
+  feeShare?: string;
+  /** Address receiving the fee share */
+  feeShareRecipient?: string;
+  /** Token used for fee share payment */
+  feeShareToken?: string;
+  /** Runner details for relayed execution */
+  runner?: {
+    /** Runner wallet address */
+    address: string;
+    /** Token used for runner payment */
+    token: string;
+    /** Runner deadline as unix timestamp */
+    deadline: number;
+  };
 }

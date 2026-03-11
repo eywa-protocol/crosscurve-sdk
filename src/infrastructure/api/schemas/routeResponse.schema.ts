@@ -65,11 +65,35 @@ export const TransactionInfoSchema = z.object({
 });
 
 /**
- * Schema for delivery fee
+ * Schema for fee with token
  */
-export const DeliveryFeeSchema = z.object({
+export const FeeWithTokenSchema = z.object({
+  token: z.string(),
   amount: z.string(),
   usd: z.number(),
+});
+
+/**
+ * Schema for delivery fee
+ */
+export const DeliveryFeeSchema = FeeWithTokenSchema;
+
+/**
+ * Schema for total fee
+ */
+export const TotalFeeSchema = z.object({
+  type: z.string(),
+  percent: z.string(),
+  amount: z.string(),
+});
+
+/**
+ * Schema for runner
+ */
+export const RunnerSchema = z.object({
+  address: z.string(),
+  token: z.string(),
+  deadline: z.number(),
 });
 
 /**
@@ -82,6 +106,19 @@ export const QuoteSchema = z.object({
   deliveryFee: DeliveryFeeSchema,
   txs: z.array(TransactionInfoSchema),
   signature: z.string(),
+  amountOutWithoutSlippage: z.string(),
+  priceImpact: z.number(),
+  tokenInPrice: z.number(),
+  tokenOutPrice: z.number(),
+  sourceFee: FeeWithTokenSchema,
+  totalFee: TotalFeeSchema,
+  expectedFinalitySeconds: z.number(),
+  deadline: z.number(),
+  slippage: z.number(),
+  feeShare: z.string().optional(),
+  feeShareRecipient: z.string().optional(),
+  feeShareToken: z.string().optional(),
+  runner: RunnerSchema.optional(),
 });
 
 /**

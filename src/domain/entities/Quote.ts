@@ -14,11 +14,37 @@ export class QuoteEntity implements IQuote {
   readonly amountIn: string;
   readonly amountOut: string;
   readonly deliveryFee: {
+    token: string;
     amount: string;
     usd: number;
   };
   readonly txs: TransactionInfo[];
   readonly signature: string;
+  readonly amountOutWithoutSlippage: string;
+  readonly priceImpact: number;
+  readonly tokenInPrice: number;
+  readonly tokenOutPrice: number;
+  readonly sourceFee: {
+    token: string;
+    amount: string;
+    usd: number;
+  };
+  readonly totalFee: {
+    type: string;
+    percent: string;
+    amount: string;
+  };
+  readonly expectedFinalitySeconds: number;
+  readonly deadline: number;
+  readonly slippage: number;
+  readonly feeShare?: string;
+  readonly feeShareRecipient?: string;
+  readonly feeShareToken?: string;
+  readonly runner?: {
+    address: string;
+    token: string;
+    deadline: number;
+  };
 
   constructor(data: IQuote) {
     this.route = [...data.route];
@@ -27,6 +53,19 @@ export class QuoteEntity implements IQuote {
     this.deliveryFee = { ...data.deliveryFee };
     this.txs = [...data.txs];
     this.signature = data.signature;
+    this.amountOutWithoutSlippage = data.amountOutWithoutSlippage;
+    this.priceImpact = data.priceImpact;
+    this.tokenInPrice = data.tokenInPrice;
+    this.tokenOutPrice = data.tokenOutPrice;
+    this.sourceFee = { ...data.sourceFee };
+    this.totalFee = { ...data.totalFee };
+    this.expectedFinalitySeconds = data.expectedFinalitySeconds;
+    this.deadline = data.deadline;
+    this.slippage = data.slippage;
+    this.feeShare = data.feeShare;
+    this.feeShareRecipient = data.feeShareRecipient;
+    this.feeShareToken = data.feeShareToken;
+    this.runner = data.runner ? { ...data.runner } : undefined;
   }
 
   /**

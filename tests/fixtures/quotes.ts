@@ -5,12 +5,37 @@
 import type { Quote } from '../../src/types/quote.js';
 
 /**
+ * Factory function for creating mock quotes with sensible defaults
+ */
+export function createMockQuote(overrides?: Partial<Quote>): Quote {
+  return {
+    route: [],
+    amountIn: '1000000',
+    amountOut: '990000',
+    deliveryFee: { token: '0x0000000000000000000000000000000000000000', amount: '1000', usd: 0.1 },
+    txs: [],
+    signature: '0xsig',
+    amountOutWithoutSlippage: '1000000',
+    priceImpact: 0.01,
+    tokenInPrice: 1.0,
+    tokenOutPrice: 1.0,
+    sourceFee: { token: '0x0000000000000000000000000000000000000000', amount: '500', usd: 0.05 },
+    totalFee: { type: 'fixed', percent: '0.1', amount: '1500' },
+    expectedFinalitySeconds: 120,
+    deadline: Math.floor(Date.now() / 1000) + 3600,
+    slippage: 0.5,
+    ...overrides,
+  };
+}
+
+/**
  * Cross-chain swap quote (Arbitrum USDC -> Optimism USDC)
  */
 export const crossChainQuote: Quote = {
   amountIn: '1000000000',
   amountOut: '999000000',
   deliveryFee: {
+    token: '0x0000000000000000000000000000000000000000',
     amount: '1000000',
     usd: 1.0,
   },
@@ -46,6 +71,15 @@ export const crossChainQuote: Quote = {
       ],
     },
   ],
+  amountOutWithoutSlippage: '1000000000',
+  priceImpact: 0.001,
+  tokenInPrice: 1.0,
+  tokenOutPrice: 1.0,
+  sourceFee: { token: '0x0000000000000000000000000000000000000000', amount: '500000', usd: 0.5 },
+  totalFee: { type: 'fixed', percent: '0.15', amount: '1500000' },
+  expectedFinalitySeconds: 180,
+  deadline: 1742331600,
+  slippage: 0.5,
 };
 
 /**
@@ -55,6 +89,7 @@ export const sameChainQuote: Quote = {
   amountIn: '1000000000',
   amountOut: '500000000000000000',
   deliveryFee: {
+    token: '0x0000000000000000000000000000000000000000',
     amount: '100000',
     usd: 0.1,
   },
@@ -90,6 +125,15 @@ export const sameChainQuote: Quote = {
       ],
     },
   ],
+  amountOutWithoutSlippage: '502500000000000000',
+  priceImpact: 0.005,
+  tokenInPrice: 1.0,
+  tokenOutPrice: 2000.0,
+  sourceFee: { token: '0x0000000000000000000000000000000000000000', amount: '50000', usd: 0.05 },
+  totalFee: { type: 'fixed', percent: '0.01', amount: '150000' },
+  expectedFinalitySeconds: 15,
+  deadline: 1742331600,
+  slippage: 0.5,
 };
 
 /**
@@ -99,6 +143,7 @@ export const rubicQuote: Quote = {
   amountIn: '1000000000',
   amountOut: '998000000',
   deliveryFee: {
+    token: '0x0000000000000000000000000000000000000000',
     amount: '2000000',
     usd: 2.0,
   },
@@ -139,6 +184,15 @@ export const rubicQuote: Quote = {
       ],
     },
   ],
+  amountOutWithoutSlippage: '1000000000',
+  priceImpact: 0.002,
+  tokenInPrice: 1.0,
+  tokenOutPrice: 1.0,
+  sourceFee: { token: '0x0000000000000000000000000000000000000000', amount: '1000000', usd: 1.0 },
+  totalFee: { type: 'fixed', percent: '0.3', amount: '3000000' },
+  expectedFinalitySeconds: 300,
+  deadline: 1742331600,
+  slippage: 1.0,
 };
 
 /**
@@ -148,6 +202,7 @@ export const bungeeQuote: Quote = {
   amountIn: '1000000000',
   amountOut: '997000000',
   deliveryFee: {
+    token: '0x0000000000000000000000000000000000000000',
     amount: '3000000',
     usd: 3.0,
   },
@@ -183,6 +238,15 @@ export const bungeeQuote: Quote = {
       ],
     },
   ],
+  amountOutWithoutSlippage: '1000000000',
+  priceImpact: 0.003,
+  tokenInPrice: 1.0,
+  tokenOutPrice: 1.0,
+  sourceFee: { token: '0x0000000000000000000000000000000000000000', amount: '1500000', usd: 1.5 },
+  totalFee: { type: 'fixed', percent: '0.45', amount: '4500000' },
+  expectedFinalitySeconds: 600,
+  deadline: 1742331600,
+  slippage: 0.5,
 };
 
 /**
@@ -192,10 +256,20 @@ export const emptyRouteQuote: Quote = {
   amountIn: '1000000000',
   amountOut: '1000000000',
   deliveryFee: {
+    token: '0x0000000000000000000000000000000000000000',
     amount: '0',
     usd: 0,
   },
   signature: 'mock-signature-empty',
   route: [],
   txs: [],
+  amountOutWithoutSlippage: '1000000000',
+  priceImpact: 0,
+  tokenInPrice: 1.0,
+  tokenOutPrice: 1.0,
+  sourceFee: { token: '0x0000000000000000000000000000000000000000', amount: '0', usd: 0 },
+  totalFee: { type: 'fixed', percent: '0', amount: '0' },
+  expectedFinalitySeconds: 0,
+  deadline: 1742331600,
+  slippage: 0,
 };
