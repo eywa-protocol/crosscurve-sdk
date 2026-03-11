@@ -17,6 +17,9 @@ export type { RouteProviderValue } from './constants/providers.js';
 
 export type {
   CrossCurveConfig,
+  SDKConfig,
+  ApprovalMode,
+  SDKDependencies,
   ChainSigner,
   TransactionRequest,
   TransactionResponse,
@@ -27,12 +30,21 @@ export type {
   GetQuoteParams,
   Quote,
   RouteStep,
+  RouteStepToken,
+  StreamedRoute,
   TransactionInfo,
+  TxData,
+  TrackingOptions,
   ExecuteOptions,
   ExecuteResult,
   TransactionStatus,
   TransactionWarning,
   RecoveryInfo,
+  TransactionEvent,
+  TransactionMetadata,
+  CalldataOnlyResponse,
+  SubmitExternalParams,
+  SubmitExternalResponse,
   RecoveryOptions,
   RecoveryType,
   RunnerStatus,
@@ -60,3 +72,6 @@ export {
   TimeoutError,
   PimlicoUnavailableError,
 } from './errors/index.js';
+
+export { detectAddressType, isValidAddress, normalizeAddress } from './utils/address.js';
+export type { AddressType } from './utils/address.js';

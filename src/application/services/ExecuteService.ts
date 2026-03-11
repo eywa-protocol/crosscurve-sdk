@@ -35,7 +35,7 @@ import { TransactionError } from '../../errors/index.js';
 import { ValidationError } from '../../infrastructure/api/errors/index.js';
 import type { PollingConfig } from '../../types/config.js';
 
-const NON_EVM_CHAINS = new Set([ChainId.SOLANA, ChainId.TRON]);
+const NON_EVM_CHAINS: Set<number> = new Set([ChainId.SOLANA, ChainId.TRON]);
 
 /**
  * Maximum gas limit (30M - typical block gas limit)
@@ -329,7 +329,7 @@ export class ExecuteService {
     }
 
     // Check if token supports EIP-2612 permit (fromToken may carry permit field from API)
-    const tokenPermit = (firstStep.fromToken as Record<string, unknown> | undefined)?.permit === true;
+    const tokenPermit = (firstStep.fromToken as unknown as Record<string, unknown> | undefined)?.permit === true;
     const supportsPermit = this.permitEnabled && tokenPermit;
 
     return {
