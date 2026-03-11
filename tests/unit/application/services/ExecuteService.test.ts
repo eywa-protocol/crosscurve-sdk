@@ -39,6 +39,7 @@ describe('ExecuteService', () => {
       mockRecoveryService as IRecoveryService,
       mockApprovalService as IApprovalService,
       'exact',
+      false,
       (chainId) => mockRouters[chainId]
     );
   });
@@ -454,6 +455,95 @@ describe('ExecuteService', () => {
       await expect(
         service.executeQuote(crossChainQuote, { signer: mockSigner })
       ).rejects.toThrow('Transaction failed');
+    });
+  });
+
+  describe('permit configuration', () => {
+    /** Quote with fromToken that has permit: true (simulates API response with permit-capable token) */
+    const permitCapableQuote: typeof crossChainQuote = {
+      ...crossChainQuote,
+      route: [
+        {
+          ...crossChainQuote.route[0],
+          fromToken: {
+            ...crossChainQuote.route[0].fromToken,
+            permit: true,
+          } as typeof crossChainQuote.route[0]['fromToken'],
+        },
+      ],
+    };
+
+    it('enables permit when permitEnabled is true and token supports permit', async () => {
+      const permitService = new ExecuteService(
+        mockApiClient as IApiClient,
+        mockTrackingService as ITrackingService,
+        mockRecoveryService as IRecoveryService,
+        mockApprovalService as IApprovalService,
+        'exact',
+        true,
+        (chainId) => mockRouters[chainId]
+      );
+
+      const mockSigner = createMockSigner();
+      mockApiClient.createTransaction.mockResolvedValue(mockResponses.createTransaction);
+      mockApprovalService.handleApproval.mockResolvedValue({ type: 'approval' });
+
+      await permitService.executeQuote(permitCapableQuote, { signer: mockSigner });
+
+      expect(mockApprovalService.handleApproval).toHaveBeenCalledWith(
+        expect.objectContaining({
+          token: expect.objectContaining({ permit: true }),
+        })
+      );
+    });
+
+    it('disables permit by default regardless of token capability', async () => {
+      const defaultService = new ExecuteService(
+        mockApiClient as IApiClient,
+        mockTrackingService as ITrackingService,
+        mockRecoveryService as IRecoveryService,
+        mockApprovalService as IApprovalService,
+        'exact',
+        false,
+        (chainId) => mockRouters[chainId]
+      );
+
+      const mockSigner = createMockSigner();
+      mockApiClient.createTransaction.mockResolvedValue(mockResponses.createTransaction);
+      mockApprovalService.handleApproval.mockResolvedValue({ type: 'approval' });
+
+      await defaultService.executeQuote(permitCapableQuote, { signer: mockSigner });
+
+      expect(mockApprovalService.handleApproval).toHaveBeenCalledWith(
+        expect.objectContaining({
+          token: expect.objectContaining({ permit: false }),
+        })
+      );
+    });
+
+    it('disables permit when permitEnabled is true but token lacks permit support', async () => {
+      const permitService = new ExecuteService(
+        mockApiClient as IApiClient,
+        mockTrackingService as ITrackingService,
+        mockRecoveryService as IRecoveryService,
+        mockApprovalService as IApprovalService,
+        'exact',
+        true,
+        (chainId) => mockRouters[chainId]
+      );
+
+      const mockSigner = createMockSigner();
+      mockApiClient.createTransaction.mockResolvedValue(mockResponses.createTransaction);
+      mockApprovalService.handleApproval.mockResolvedValue({ type: 'approval' });
+
+      // crossChainQuote's fromToken does NOT have permit: true
+      await permitService.executeQuote(crossChainQuote, { signer: mockSigner });
+
+      expect(mockApprovalService.handleApproval).toHaveBeenCalledWith(
+        expect.objectContaining({
+          token: expect.objectContaining({ permit: false }),
+        })
+      );
     });
   });
 });

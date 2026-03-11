@@ -69,6 +69,7 @@ export class ExecuteService {
     private readonly recoveryService: IRecoveryService,
     private readonly approvalService: IApprovalService,
     private readonly approvalMode: ApprovalMode,
+    private readonly permitEnabled: boolean,
     private readonly getRouter?: RouterLookup,
     bridgePolling?: PollingConfig
   ) {
@@ -316,8 +317,9 @@ export class ExecuteService {
       return undefined;
     }
 
-    // Disable permit for now - API has issues with permit signature format
-    const supportsPermit = false;
+    // Check if token supports EIP-2612 permit (fromToken may carry permit field from API)
+    const tokenPermit = (firstStep.fromToken as Record<string, unknown> | undefined)?.permit === true;
+    const supportsPermit = this.permitEnabled && tokenPermit;
 
     return {
       address: tokenAddress,

@@ -98,7 +98,11 @@ export function applyConfigDefaults(config?: Partial<CrossCurveConfig>): SDKConf
       allowedHosts: config?.security?.allowedHosts ?? DEFAULT_SECURITY.allowedHosts,
       enforceHttps: config?.security?.enforceHttps ?? DEFAULT_SECURITY.enforceHttps,
     },
-    permitDeadlineSeconds: config?.permitDeadlineSeconds ?? DEFAULT_PERMIT_DEADLINE_SECONDS,
+    permitDeadlineSeconds: config?.permit?.deadlineSeconds ?? config?.permitDeadlineSeconds ?? DEFAULT_PERMIT_DEADLINE_SECONDS,
+    permit: {
+      enabled: config?.permit?.enabled ?? false,
+      deadlineSeconds: config?.permit?.deadlineSeconds ?? config?.permitDeadlineSeconds ?? DEFAULT_PERMIT_DEADLINE_SECONDS,
+    },
     feeShareBps: config?.feeShareBps,
   };
 }
