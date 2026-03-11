@@ -18,6 +18,7 @@ export interface RoutingScanRequest {
   };
   slippage: number;
   from?: string;
+  recipient?: string;
   providers?: RouteProviderValue[];
   feeFromAmount?: boolean;
   feeToken?: string;

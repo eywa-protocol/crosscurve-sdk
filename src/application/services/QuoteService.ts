@@ -28,6 +28,10 @@ export class QuoteService {
       validateAddress(params.sender, 'sender');
     }
 
+    if (params.recipient) {
+      validateAddress(params.recipient, 'recipient');
+    }
+
     validateAddress(params.fromToken, 'fromToken');
     validateAddress(params.toToken, 'toToken');
 
@@ -56,6 +60,7 @@ export class QuoteService {
       },
       slippage: params.slippage,
       from: params.sender,
+      recipient: params.recipient,
       providers: params.providers,
       feeFromAmount: params.feeFromAmount,
       feeToken: params.feeToken,

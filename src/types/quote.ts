@@ -29,6 +29,8 @@ export interface GetQuoteParams {
   slippage: number;
   /** Sender address (optional for quote, required for execution) */
   sender?: string;
+  /** Recipient address (if different from sender) */
+  recipient?: string;
   /** Deduct fee from input amount */
   feeFromAmount?: boolean;
   /** Token to pay fees in */

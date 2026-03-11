@@ -44,6 +44,7 @@ describe('QuoteService', () => {
         },
         slippage: validParams.slippage,
         from: validParams.sender,
+        recipient: undefined,
         providers: undefined,
         feeFromAmount: undefined,
         feeToken: undefined,
@@ -201,6 +202,15 @@ describe('QuoteService', () => {
       ).rejects.toThrow();
     });
 
+    it('should throw on invalid recipient address', async () => {
+      await expect(
+        service.getQuote({
+          ...validParams,
+          recipient: 'bad-address',
+        })
+      ).rejects.toThrow();
+    });
+
     it('should throw on invalid sender address', async () => {
       await expect(
         service.getQuote({
@@ -234,6 +244,21 @@ describe('QuoteService', () => {
       expect(mockApiClient.scanRoutes).toHaveBeenCalledWith(
         expect.objectContaining({
           providers: ['rubic', 'bungee'],
+        })
+      );
+    });
+
+    it('passes recipient through to routing scan request', async () => {
+      mockApiClient.scanRoutes.mockResolvedValue([crossChainQuote]);
+
+      await service.getQuote({
+        ...validParams,
+        recipient: '0x1111111111111111111111111111111111111111',
+      });
+
+      expect(mockApiClient.scanRoutes).toHaveBeenCalledWith(
+        expect.objectContaining({
+          recipient: '0x1111111111111111111111111111111111111111',
         })
       );
     });
