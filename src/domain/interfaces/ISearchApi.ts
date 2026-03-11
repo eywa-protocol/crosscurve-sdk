@@ -14,4 +14,10 @@ export interface ISearchApi {
    * GET /search?search={search}
    */
   searchTransactions(query: string): Promise<SearchResponse>;
+
+  /**
+   * Get transaction history for an address
+   * GET /history?address={address}
+   */
+  getHistory(address: string): Promise<SearchResponse>;
 }

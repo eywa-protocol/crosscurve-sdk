@@ -259,6 +259,27 @@ export class TrackingService {
   }
 
   /**
+   * Get transaction history for an address
+   *
+   * Note: Only queries CrossCurve API. External bridges not included.
+   */
+  async getHistory(address: string): Promise<TransactionStatus[]> {
+    try {
+      const response = await this.apiClient.getHistory(address);
+      return (response?.transactions ?? []).map((tx) => ({
+        ...tx,
+        recovery: this.computeRecoveryInfo(tx),
+      }));
+    } catch (error: unknown) {
+      const apiError = error as { statusCode?: number };
+      if (apiError?.statusCode === 404) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Compute recovery information from transaction status
    */
   private computeRecoveryInfo(tx: TransactionStatus): RecoveryInfo | undefined {

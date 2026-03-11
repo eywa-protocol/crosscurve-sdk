@@ -99,6 +99,10 @@ export class ApiClient implements IApiClient {
     return endpoints.searchTransactions(this.httpClient, query);
   }
 
+  async getHistory(address: string): Promise<SearchResponse> {
+    return endpoints.getHistory(this.httpClient, address);
+  }
+
   async getInconsistencyParams(requestId: string): Promise<InconsistencyGetResponse> {
     return endpoints.getInconsistencyParams(this.httpClient, requestId);
   }

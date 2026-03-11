@@ -35,6 +35,7 @@ export function createMockApiClient(): IApiClient & {
   createRetryTransaction: ReturnType<typeof vi.fn>;
   getTransaction: ReturnType<typeof vi.fn>;
   searchTransactions: ReturnType<typeof vi.fn>;
+  getHistory: ReturnType<typeof vi.fn>;
   getInconsistencyParams: ReturnType<typeof vi.fn>;
   createInconsistency: ReturnType<typeof vi.fn>;
   getTokenList: ReturnType<typeof vi.fn>;
@@ -52,6 +53,7 @@ export function createMockApiClient(): IApiClient & {
     createRetryTransaction: vi.fn<[TxCreateRetryRequest], Promise<TxCreateResponse>>(),
     getTransaction: vi.fn<[string], Promise<TransactionGetResponse>>(),
     searchTransactions: vi.fn<[string], Promise<SearchResponse>>(),
+    getHistory: vi.fn<[string], Promise<SearchResponse>>(),
     getInconsistencyParams: vi.fn<[string], Promise<InconsistencyGetResponse>>(),
     createInconsistency: vi.fn<[InconsistencyCreateRequest], Promise<InconsistencyCreateResponse>>(),
     getTokenList: vi.fn<[], Promise<TokenListResponse>>(),

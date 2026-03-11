@@ -15,3 +15,14 @@ export async function searchTransactions(
 ): Promise<SearchResponse> {
   return client.get<SearchResponse>('/search', { search: query });
 }
+
+/**
+ * Get transaction history for an address
+ * GET /history?address={address}
+ */
+export async function getHistory(
+  client: HttpClient,
+  address: string
+): Promise<SearchResponse> {
+  return client.get<SearchResponse>('/history', { address });
+}

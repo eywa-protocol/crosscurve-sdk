@@ -30,4 +30,9 @@ export interface ITrackingService {
    * Note: Only searches CrossCurve API. External bridges not searchable.
    */
   searchTransactions(query: string): Promise<TransactionStatus[]>;
+
+  /**
+   * Get transaction history for an address
+   */
+  getHistory(address: string): Promise<TransactionStatus[]>;
 }

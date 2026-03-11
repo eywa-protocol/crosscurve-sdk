@@ -13,9 +13,11 @@ import { createMockApiClient } from '../../../mocks/MockApiClient.js';
 const createMockTrackingService = (): {
   getTransactionStatus: ReturnType<typeof vi.fn>;
   searchTransactions: ReturnType<typeof vi.fn>;
+  getHistory: ReturnType<typeof vi.fn>;
 } => ({
   getTransactionStatus: vi.fn(),
   searchTransactions: vi.fn(),
+  getHistory: vi.fn(),
 });
 
 describe('TrackingScope', () => {
@@ -249,6 +251,32 @@ describe('TrackingScope', () => {
 
       expect(mockTrackingService.searchTransactions).toHaveBeenCalledWith(testTxHash);
       expect(results).toHaveLength(1);
+    });
+  });
+
+  describe('history', () => {
+    it('returns transaction history for address', async () => {
+      const mockStatus = createMockStatus();
+      mockTrackingService.getHistory.mockResolvedValue([mockStatus]);
+
+      const result = await scope.history('0xAddress');
+
+      expect(result).toHaveLength(1);
+      expect(mockTrackingService.getHistory).toHaveBeenCalledWith('0xAddress');
+    });
+
+    it('should return empty array when no history found', async () => {
+      mockTrackingService.getHistory.mockResolvedValue([]);
+
+      const results = await scope.history('0x0000000000000000000000000000000000000000');
+
+      expect(results).toEqual([]);
+    });
+
+    it('should propagate history errors', async () => {
+      mockTrackingService.getHistory.mockRejectedValue(new Error('History failed'));
+
+      await expect(scope.history('0xAddress')).rejects.toThrow('History failed');
     });
   });
 });

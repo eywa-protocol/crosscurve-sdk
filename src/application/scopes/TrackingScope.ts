@@ -30,4 +30,12 @@ export class TrackingScope {
   async search(query: string): Promise<TransactionStatus[]> {
     return this.trackingService.searchTransactions(query);
   }
+
+  /**
+   * Get transaction history for an address
+   * GET /history
+   */
+  async history(address: string): Promise<TransactionStatus[]> {
+    return this.trackingService.getHistory(address);
+  }
 }
