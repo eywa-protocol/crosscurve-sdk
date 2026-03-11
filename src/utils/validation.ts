@@ -3,6 +3,7 @@
  */
 
 import { ValidationError } from '../errors/index.js';
+import { isValidAddress as checkAddress } from './address.js';
 
 /**
  * Validate slippage value
@@ -43,8 +44,8 @@ export function validateAmount(amount: string): void {
  * Validate Ethereum address
  */
 export function validateAddress(address: string, field = 'address'): void {
-  if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
-    throw new ValidationError('Invalid Ethereum address', field);
+  if (!checkAddress(address)) {
+    throw new ValidationError('Invalid address', field);
   }
 }
 

@@ -159,7 +159,7 @@ describe('validation utilities', () => {
         validateAddress('invalid');
       } catch (error) {
         expect(error).toBeInstanceOf(ValidationError);
-        expect((error as ValidationError).message).toBe('Invalid Ethereum address');
+        expect((error as ValidationError).message).toBe('Invalid address');
         expect((error as ValidationError).field).toBe('address');
       }
     });

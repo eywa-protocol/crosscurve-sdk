@@ -2,6 +2,7 @@
  * @fileoverview Utils re-exports
  */
 
+export * from './address.js';
 export * from './polling.js';
 export * from './validation.js';
 export * from './signature.js';
