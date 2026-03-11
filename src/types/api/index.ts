@@ -8,6 +8,7 @@ export type {
   TxCreateEmergencyRequest,
   TxCreateRetryRequest,
   InconsistencyCreateRequest,
+  DiscoverRequest,
 } from './requests.js';
 
 export type {
@@ -22,4 +23,6 @@ export type {
   InconsistencyCreateResponse,
   TokenListResponse,
   ChainListResponse,
+  TokenReference,
+  DiscoverResponse,
 } from './responses.js';

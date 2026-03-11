@@ -2,7 +2,7 @@
  * @fileoverview API endpoints re-exports
  */
 
-export { scanRoutes, scanRoutesStream } from './routing.js';
+export { scanRoutes, scanRoutesStream, discover } from './routing.js';
 export { createTransaction, getTransaction } from './transaction.js';
 export { createEmergencyTransaction, createRetryTransaction } from './recovery.js';
 export { getInconsistencyParams, createInconsistency } from './inconsistency.js';

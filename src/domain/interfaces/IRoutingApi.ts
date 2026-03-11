@@ -6,6 +6,8 @@
 import type {
   RoutingScanRequest,
   RoutingScanResponse,
+  DiscoverRequest,
+  TokenReference,
 } from '../../types/api/index.js';
 import type { StreamedRoute } from '../../types/index.js';
 
@@ -24,4 +26,10 @@ export interface IRoutingApi {
    * POST /routing/scan/stream
    */
   scanRoutesStream(request: RoutingScanRequest, signal?: AbortSignal): AsyncIterable<StreamedRoute>;
+
+  /**
+   * Discover reachable output tokens for a given input token
+   * POST /routing/discover
+   */
+  discover(request: DiscoverRequest): Promise<TokenReference[]>;
 }

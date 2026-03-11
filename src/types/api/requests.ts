@@ -73,3 +73,11 @@ export interface InconsistencyCreateRequest {
     deadline: number;
   };
 }
+
+/**
+ * Request payload for POST /routing/discover
+ */
+export interface DiscoverRequest {
+  tokenIn: string;
+  chainIdIn: string;  // pusher expects string, not number
+}

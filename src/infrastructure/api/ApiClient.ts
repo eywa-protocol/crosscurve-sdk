@@ -18,6 +18,8 @@ import type {
   InconsistencyCreateResponse,
   TokenListResponse,
   ChainListResponse,
+  DiscoverRequest,
+  TokenReference,
 } from '../../types/api/index.js';
 import type { StreamedRoute } from '../../types/index.js';
 import { HttpClient } from './client/index.js';
@@ -103,5 +105,9 @@ export class ApiClient implements IApiClient {
 
   async getChainList(): Promise<ChainListResponse> {
     return endpoints.getChainList(this.httpClient);
+  }
+
+  async discover(request: DiscoverRequest): Promise<TokenReference[]> {
+    return endpoints.discover(this.httpClient, request);
   }
 }

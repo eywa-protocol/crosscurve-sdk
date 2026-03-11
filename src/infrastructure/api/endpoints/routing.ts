@@ -3,7 +3,7 @@
  */
 
 import type { HttpClient } from '../client/index.js';
-import type { RoutingScanRequest, RoutingScanResponse } from '../../../types/api/index.js';
+import type { RoutingScanRequest, RoutingScanResponse, DiscoverRequest, TokenReference } from '../../../types/api/index.js';
 import type { Quote, StreamedRoute } from '../../../types/index.js';
 
 /**
@@ -39,4 +39,15 @@ export async function* scanRoutesStream(
       yield { error: String(item.error) };
     }
   }
+}
+
+/**
+ * Discover reachable output tokens for a given input token
+ * POST /routing/discover
+ */
+export async function discover(
+  client: HttpClient,
+  request: DiscoverRequest,
+): Promise<TokenReference[]> {
+  return client.post<TokenReference[]>('/routing/discover', request);
 }

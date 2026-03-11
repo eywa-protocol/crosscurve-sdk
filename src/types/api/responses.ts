@@ -153,3 +153,16 @@ export interface TokenListResponse {
 export interface ChainListResponse {
   chains: Chain[];
 }
+
+/**
+ * A token reference returned by discovery endpoint
+ */
+export interface TokenReference {
+  address: string;
+  chainId: number;
+}
+
+/**
+ * Response from POST /routing/discover
+ */
+export type DiscoverResponse = TokenReference[];

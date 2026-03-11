@@ -124,6 +124,18 @@ describe('RoutingScope', () => {
     });
   });
 
+  describe('discover', () => {
+    it('returns discoverable token pairs', async () => {
+      const expected = [{ address: '0xUSDC', chainId: 42161 }];
+      mockApiClient.discover = vi.fn().mockResolvedValue(expected);
+
+      const result = await scope.discover({ tokenIn: '0xDAI', chainIdIn: 1 });
+
+      expect(result).toEqual(expected);
+      expect(mockApiClient.discover).toHaveBeenCalledWith({ tokenIn: '0xDAI', chainIdIn: '1' });
+    });
+  });
+
   describe('scanStream', () => {
     const request: RoutingScanRequest = {
       params: {

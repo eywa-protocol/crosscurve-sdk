@@ -5,7 +5,7 @@
 
 import type { IApiClient } from '../../domain/interfaces/index.js';
 import type { Quote, StreamedRoute } from '../../types/index.js';
-import type { RoutingScanRequest } from '../../types/api/index.js';
+import type { RoutingScanRequest, TokenReference } from '../../types/api/index.js';
 
 /**
  * Routing scope: sdk.routing.*
@@ -28,5 +28,16 @@ export class RoutingScope {
    */
   async *scanStream(request: RoutingScanRequest, signal?: AbortSignal): AsyncIterable<StreamedRoute> {
     yield* this.apiClient.scanRoutesStream(request, signal);
+  }
+
+  /**
+   * Discover reachable output tokens for a given input token
+   * POST /routing/discover
+   */
+  async discover(params: { tokenIn: string; chainIdIn: number }): Promise<TokenReference[]> {
+    return this.apiClient.discover({
+      tokenIn: params.tokenIn,
+      chainIdIn: String(params.chainIdIn),
+    });
   }
 }

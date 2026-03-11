@@ -18,6 +18,8 @@ import type {
   InconsistencyCreateResponse,
   TokenListResponse,
   ChainListResponse,
+  DiscoverRequest,
+  TokenReference,
 } from '../../src/types/api/index.js';
 import type { StreamedRoute } from '../../src/types/index.js';
 
@@ -36,6 +38,7 @@ export function createMockApiClient(): IApiClient & {
   createInconsistency: ReturnType<typeof vi.fn>;
   getTokenList: ReturnType<typeof vi.fn>;
   getChainList: ReturnType<typeof vi.fn>;
+  discover: ReturnType<typeof vi.fn>;
 } {
   return {
     scanRoutes: vi.fn<[RoutingScanRequest], Promise<RoutingScanResponse>>(),
@@ -49,6 +52,7 @@ export function createMockApiClient(): IApiClient & {
     createInconsistency: vi.fn<[InconsistencyCreateRequest], Promise<InconsistencyCreateResponse>>(),
     getTokenList: vi.fn<[], Promise<TokenListResponse>>(),
     getChainList: vi.fn<[], Promise<ChainListResponse>>(),
+    discover: vi.fn<[DiscoverRequest], Promise<TokenReference[]>>(),
   };
 }
 
