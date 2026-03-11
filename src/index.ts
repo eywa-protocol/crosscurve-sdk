@@ -3,7 +3,7 @@
  */
 
 export { CrossCurveSDK } from './sdk.js';
-export { PricesScope } from './application/scopes/index.js';
+export { PricesScope, RunnerScope } from './application/scopes/index.js';
 
 export {
   ViemAdapter,
@@ -35,6 +35,7 @@ export type {
   RecoveryInfo,
   RecoveryOptions,
   RecoveryType,
+  RunnerStatus,
 } from './types/index.js';
 
 export {

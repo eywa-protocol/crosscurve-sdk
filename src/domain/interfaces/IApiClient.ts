@@ -9,6 +9,7 @@ import type { ISearchApi } from './ISearchApi.js';
 import type { IInconsistencyApi } from './IInconsistencyApi.js';
 import type { IDataApi } from './IDataApi.js';
 import type { IPricesApi } from './IPricesApi.js';
+import type { IRunnerApi } from './IRunnerApi.js';
 
 /**
  * Composed API client interface for HTTP operations
@@ -21,6 +22,7 @@ import type { IPricesApi } from './IPricesApi.js';
  * - IInconsistencyApi: Inconsistency resolution operations
  * - IDataApi: Token and chain data operations
  * - IPricesApi: Token price lookup operations
+ * - IRunnerApi: Runner emergency operations
  *
  * Consumers can depend on specific sub-interfaces for narrower contracts.
  */
@@ -30,4 +32,5 @@ export interface IApiClient
     ISearchApi,
     IInconsistencyApi,
     IDataApi,
-    IPricesApi {}
+    IPricesApi,
+    IRunnerApi {}

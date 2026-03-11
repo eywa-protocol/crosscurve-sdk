@@ -9,3 +9,4 @@ export { getInconsistencyParams, createInconsistency } from './inconsistency.js'
 export { searchTransactions, getHistory } from './search.js';
 export { getNetworks, getChainList, getTokenList, transformToChains } from './networks.js';
 export { getPrice } from './prices.js';
+export { createEmergencyRunner, getRunnerStatus } from './runner.js';

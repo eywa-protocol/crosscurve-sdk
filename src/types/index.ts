@@ -22,5 +22,6 @@ export type {
   SubmitExternalResponse,
 } from './transaction.js';
 export type { RecoveryOptions, RecoveryType } from './recovery.js';
+export type { RunnerStatus } from './runner.js';
 
 export * from './api/index.js';

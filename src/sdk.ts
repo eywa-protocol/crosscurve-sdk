@@ -22,6 +22,7 @@ import {
   TrackingScope,
   InconsistencyScope,
   PricesScope,
+  RunnerScope,
 } from './application/scopes/index.js';
 import type {
   Chain,
@@ -78,6 +79,7 @@ export class CrossCurveSDK {
   public readonly inconsistency: InconsistencyScope;
 
   private _prices?: PricesScope;
+  private _runner?: RunnerScope;
 
   private _chains: Chain[] = [];
   private _tokens: Map<number, Token[]> = new Map();
@@ -160,6 +162,13 @@ export class CrossCurveSDK {
       this._prices = new PricesScope(this.apiClient);
     }
     return this._prices;
+  }
+
+  get runner(): RunnerScope {
+    if (!this._runner) {
+      this._runner = new RunnerScope(this.apiClient);
+    }
+    return this._runner;
   }
 
   /**

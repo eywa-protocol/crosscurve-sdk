@@ -21,7 +21,7 @@ import type {
   DiscoverRequest,
   TokenReference,
 } from '../../src/types/api/index.js';
-import type { StreamedRoute, CalldataOnlyResponse, SubmitExternalParams, SubmitExternalResponse } from '../../src/types/index.js';
+import type { StreamedRoute, CalldataOnlyResponse, SubmitExternalParams, SubmitExternalResponse, RunnerStatus } from '../../src/types/index.js';
 
 /**
  * Creates a mock IApiClient with all methods mocked
@@ -43,6 +43,8 @@ export function createMockApiClient(): IApiClient & {
   submitExternal: ReturnType<typeof vi.fn>;
   discover: ReturnType<typeof vi.fn>;
   getPrice: ReturnType<typeof vi.fn>;
+  createEmergencyRunner: ReturnType<typeof vi.fn>;
+  getRunnerStatus: ReturnType<typeof vi.fn>;
 } {
   return {
     scanRoutes: vi.fn<[RoutingScanRequest], Promise<RoutingScanResponse>>(),
@@ -61,6 +63,8 @@ export function createMockApiClient(): IApiClient & {
     submitExternal: vi.fn<[SubmitExternalParams], Promise<SubmitExternalResponse>>(),
     discover: vi.fn<[DiscoverRequest], Promise<TokenReference[]>>(),
     getPrice: vi.fn<[string, number], Promise<string>>(),
+    createEmergencyRunner: vi.fn<[string], Promise<TxCreateResponse>>(),
+    getRunnerStatus: vi.fn<[string], Promise<RunnerStatus>>(),
   };
 }
 

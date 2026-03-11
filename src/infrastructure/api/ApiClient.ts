@@ -21,7 +21,7 @@ import type {
   DiscoverRequest,
   TokenReference,
 } from '../../types/api/index.js';
-import type { StreamedRoute, CalldataOnlyResponse, SubmitExternalParams, SubmitExternalResponse } from '../../types/index.js';
+import type { StreamedRoute, CalldataOnlyResponse, SubmitExternalParams, SubmitExternalResponse, RunnerStatus } from '../../types/index.js';
 import { HttpClient } from './client/index.js';
 import * as endpoints from './endpoints/index.js';
 
@@ -125,5 +125,13 @@ export class ApiClient implements IApiClient {
 
   async getPrice(token: string, chainId: number): Promise<string> {
     return endpoints.getPrice(this.httpClient, token, chainId);
+  }
+
+  async createEmergencyRunner(requestId: string): Promise<TxCreateResponse> {
+    return endpoints.createEmergencyRunner(this.httpClient, requestId);
+  }
+
+  async getRunnerStatus(requestId: string): Promise<RunnerStatus> {
+    return endpoints.getRunnerStatus(this.httpClient, requestId);
   }
 }

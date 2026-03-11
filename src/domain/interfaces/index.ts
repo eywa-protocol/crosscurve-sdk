@@ -9,6 +9,7 @@ export type { ISearchApi } from './ISearchApi.js';
 export type { IInconsistencyApi } from './IInconsistencyApi.js';
 export type { IDataApi } from './IDataApi.js';
 export type { IPricesApi } from './IPricesApi.js';
+export type { IRunnerApi } from './IRunnerApi.js';
 export type { ICache } from './ICache.js';
 export type { ChainSigner } from '../../types/signer.js';
 export type {
