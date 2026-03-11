@@ -3,7 +3,7 @@
  */
 
 export { CrossCurveSDK } from './sdk.js';
-export { PricesScope, RunnerScope } from './application/scopes/index.js';
+export { PricesScope, RunnerScope, AAScope } from './application/scopes/index.js';
 
 export {
   ViemAdapter,
@@ -36,6 +36,13 @@ export type {
   RecoveryOptions,
   RecoveryType,
   RunnerStatus,
+  WalletType,
+  AAGasMode,
+  AACreateTxParams,
+  AATransaction,
+  AACall,
+  JsonRpcRequest,
+  JsonRpcResponse,
 } from './types/index.js';
 
 export {
@@ -51,4 +58,5 @@ export {
   SlippageExceededError,
   RecoveryUnavailableError,
   TimeoutError,
+  PimlicoUnavailableError,
 } from './errors/index.js';

@@ -10,6 +10,8 @@ import type { IInconsistencyApi } from './IInconsistencyApi.js';
 import type { IDataApi } from './IDataApi.js';
 import type { IPricesApi } from './IPricesApi.js';
 import type { IRunnerApi } from './IRunnerApi.js';
+import type { IAAApi } from './IAAApi.js';
+import type { IPimlicoApi } from './IPimlicoApi.js';
 
 /**
  * Composed API client interface for HTTP operations
@@ -23,6 +25,8 @@ import type { IRunnerApi } from './IRunnerApi.js';
  * - IDataApi: Token and chain data operations
  * - IPricesApi: Token price lookup operations
  * - IRunnerApi: Runner emergency operations
+ * - IAAApi: Account abstraction transaction creation
+ * - IPimlicoApi: Pimlico bundler proxy operations
  *
  * Consumers can depend on specific sub-interfaces for narrower contracts.
  */
@@ -33,4 +37,6 @@ export interface IApiClient
     IInconsistencyApi,
     IDataApi,
     IPricesApi,
-    IRunnerApi {}
+    IRunnerApi,
+    IAAApi,
+    IPimlicoApi {}

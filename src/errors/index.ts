@@ -13,3 +13,4 @@ export { TimeoutError } from './TimeoutError.js';
 export { ConfigurationError } from './ConfigurationError.js';
 export { RateLimitError } from './RateLimitError.js';
 export { CircuitBreakerError } from './CircuitBreakerError.js';
+export { PimlicoUnavailableError } from './PimlicoUnavailableError.js';

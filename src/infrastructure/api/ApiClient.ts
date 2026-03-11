@@ -21,7 +21,7 @@ import type {
   DiscoverRequest,
   TokenReference,
 } from '../../types/api/index.js';
-import type { StreamedRoute, CalldataOnlyResponse, SubmitExternalParams, SubmitExternalResponse, RunnerStatus } from '../../types/index.js';
+import type { StreamedRoute, CalldataOnlyResponse, SubmitExternalParams, SubmitExternalResponse, RunnerStatus, AACreateTxParams, AATransaction, JsonRpcRequest, JsonRpcResponse } from '../../types/index.js';
 import { HttpClient } from './client/index.js';
 import * as endpoints from './endpoints/index.js';
 
@@ -133,5 +133,17 @@ export class ApiClient implements IApiClient {
 
   async getRunnerStatus(requestId: string): Promise<RunnerStatus> {
     return endpoints.getRunnerStatus(this.httpClient, requestId);
+  }
+
+  async createAATransaction(params: AACreateTxParams): Promise<AATransaction> {
+    return endpoints.createAATransaction(this.httpClient, params);
+  }
+
+  async pimlicoHealth(): Promise<{ status: 'ok' | 'unavailable' }> {
+    return endpoints.pimlicoHealth(this.httpClient);
+  }
+
+  async pimlicoRpc(chainName: string, request: JsonRpcRequest): Promise<JsonRpcResponse> {
+    return endpoints.pimlicoRpc(this.httpClient, chainName, request);
   }
 }
