@@ -74,29 +74,44 @@ export async function ensureSmartAccountReady(
     }) as Promise<bigint>,
   ]);
 
-  // Fund if needed (EOA → smart account)
+  // Fund if needed (EOA → smart account), but only if EOA has enough
   const walletClient = createWalletClientForChain(TESTNET_CHAINS.SEPOLIA);
+  const eoaAddr = owner.address as `0x${string}`;
 
   if (usdtBal < MIN_USDT) {
-    const hash = await walletClient.writeContract({
+    const eoaUsdtBal = await sepoliaClient.readContract({
       address: TESTNET_TOKENS.SEPOLIA_USDT.address as `0x${string}`,
-      abi: erc20Abi,
-      functionName: 'transfer',
-      args: [smartAddr, FUND_USDT],
-      chain: sepolia,
-    });
-    await sepoliaClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
+      abi: erc20Abi, functionName: 'balanceOf', args: [eoaAddr],
+    }) as bigint;
+    const sendAmount = eoaUsdtBal >= FUND_USDT ? FUND_USDT : eoaUsdtBal;
+    if (sendAmount > 0n) {
+      const hash = await walletClient.writeContract({
+        address: TESTNET_TOKENS.SEPOLIA_USDT.address as `0x${string}`,
+        abi: erc20Abi,
+        functionName: 'transfer',
+        args: [smartAddr, sendAmount],
+        chain: sepolia,
+      });
+      await sepoliaClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
+    }
   }
 
   if (usdcBal < MIN_USDC) {
-    const hash = await walletClient.writeContract({
+    const eoaUsdcBal = await sepoliaClient.readContract({
       address: TESTNET_TOKENS.SEPOLIA_USDC.address as `0x${string}`,
-      abi: erc20Abi,
-      functionName: 'transfer',
-      args: [smartAddr, FUND_USDC],
-      chain: sepolia,
-    });
-    await sepoliaClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
+      abi: erc20Abi, functionName: 'balanceOf', args: [eoaAddr],
+    }) as bigint;
+    const sendAmount = eoaUsdcBal >= FUND_USDC ? FUND_USDC : eoaUsdcBal;
+    if (sendAmount > 0n) {
+      const hash = await walletClient.writeContract({
+        address: TESTNET_TOKENS.SEPOLIA_USDC.address as `0x${string}`,
+        abi: erc20Abi,
+        functionName: 'transfer',
+        args: [smartAddr, sendAmount],
+        chain: sepolia,
+      });
+      await sepoliaClient.waitForTransactionReceipt({ hash, timeout: 60_000 });
+    }
   }
 
   // Deploy if needed — send a simple UserOp with initCode
