@@ -20,11 +20,13 @@ import {
 import { getBalances, calcDelta } from '../helpers/balance.js';
 import { pollUntil } from '../helpers/polling.js';
 import { pimlicoRpc } from '../helpers/pimlico.js';
+import { ensureSmartAccountReady } from '../helpers/smart-account.js';
 
 describe('erc4337 basic flow', () => {
   let sdk: CrossCurveSDK;
   const owner = getAccount();
   let sepoliaClient: ReturnType<typeof createPublicClientForChain>;
+  let smartAccount: Awaited<ReturnType<typeof toCoinbaseSmartAccount>>;
 
   beforeAll(async () => {
     sdk = new CrossCurveSDK({
@@ -33,17 +35,18 @@ describe('erc4337 basic flow', () => {
     });
     await sdk.init();
     sepoliaClient = createPublicClientForChain(TESTNET_CHAINS.SEPOLIA);
-  });
 
-  it('should execute swap via 4337 smart account with ERC-20 gas', async () => {
-    // Step 1: Create Coinbase Smart Account
-    const smartAccount = await toCoinbaseSmartAccount({
+    // Create and ensure smart account is deployed + funded
+    smartAccount = await toCoinbaseSmartAccount({
       client: sepoliaClient,
       owners: [owner],
       version: '1.1',
     });
+    await ensureSmartAccountReady(sdk, sepoliaClient, smartAccount, owner);
+  });
 
-    // Step 2: Get quote using smart wallet address
+  it('should execute swap via 4337 smart account with ERC-20 gas', async () => {
+    // Step 1: Get quote using smart wallet address
     const quotes = await sdk.routing.scan({
       params: {
         tokenIn: TESTNET_TOKENS.SEPOLIA_USDT.address,

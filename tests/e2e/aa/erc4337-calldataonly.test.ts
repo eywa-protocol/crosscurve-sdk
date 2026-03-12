@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { custom, encodeFunctionData, parseAbi } from 'viem';
+import {
+  custom,
+  encodeFunctionData,
+  parseAbi,
+} from 'viem';
 import {
   createBundlerClient,
   createPaymasterClient,
@@ -17,33 +21,18 @@ import { getAccount, createPublicClientForChain } from '../helpers/wallet.js';
 import { getBalances, calcDelta } from '../helpers/balance.js';
 import { pollUntil } from '../helpers/polling.js';
 import { pimlicoRpc } from '../helpers/pimlico.js';
+import { ensureSmartAccountReady } from '../helpers/smart-account.js';
 
 const erc20Abi = parseAbi([
   'function approve(address spender, uint256 amount) returns (bool)',
 ]);
 const MAX_UINT256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
 
-/**
- * Normalize a calldataOnly response to always have encoded `data`.
- * The API may return either:
- *   - { to, data, value, chainId, feeToken, executionPrice }  (pre-encoded)
- *   - { to, abi, args, value, ... }                           (abi+args form)
- */
-function resolveCalldata(resp: Record<string, unknown>): `0x${string}` {
-  if (typeof resp.data === 'string' && resp.data.startsWith('0x')) {
-    return resp.data as `0x${string}`;
-  }
-  if (typeof resp.abi === 'string' && Array.isArray(resp.args)) {
-    const iface = parseAbi([resp.abi]);
-    return encodeFunctionData({ abi: iface, args: resp.args as unknown[] });
-  }
-  throw new Error(`calldataOnly response has neither 'data' nor 'abi+args': ${JSON.stringify(resp)}`);
-}
-
 describe('erc4337 calldataonly', () => {
   let sdk: CrossCurveSDK;
   const owner = getAccount();
   let sepoliaClient: ReturnType<typeof createPublicClientForChain>;
+  let smartAccount: Awaited<ReturnType<typeof toCoinbaseSmartAccount>>;
 
   beforeAll(async () => {
     sdk = new CrossCurveSDK({
@@ -52,13 +41,13 @@ describe('erc4337 calldataonly', () => {
     });
     await sdk.init();
     sepoliaClient = createPublicClientForChain(TESTNET_CHAINS.SEPOLIA);
+    smartAccount = await toCoinbaseSmartAccount({
+      client: sepoliaClient, owners: [owner], version: '1.1',
+    });
+    await ensureSmartAccountReady(sdk, sepoliaClient, smartAccount, owner);
   });
 
   it('should execute swap from raw calldata', async () => {
-    const smartAccount = await toCoinbaseSmartAccount({
-      client: sepoliaClient, owners: [owner], version: '1.1',
-    });
-
     // Get quote
     const quotes = await sdk.routing.scan({
       params: {
@@ -74,38 +63,32 @@ describe('erc4337 calldataonly', () => {
     });
     const quote = quotes[0];
 
-    // Get raw calldata via sdk.tx.createCalldata
-    const cdResp = await sdk.tx.createCalldata({
-      from: smartAccount.address,
-      recipient: owner.address,
-      routing: quote,
-    }) as unknown as Record<string, unknown>;
+    // Call API directly with walletType + calldataOnly to get pre-encoded data
+    const baseUrl = process.env.E2E_API_BASE_URL!;
+    const apiKey = process.env.E2E_API_KEY!;
+    const cdRes = await fetch(`${baseUrl}/tx/create`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'api-key': apiKey },
+      body: JSON.stringify({
+        from: smartAccount.address,
+        recipient: owner.address,
+        routing: quote,
+        walletType: '4337',
+        calldataOnly: true,
+      }),
+    });
+    expect(cdRes.ok).toBe(true);
+    const cdResp = await cdRes.json() as Record<string, unknown>;
 
-    // Validate calldataOnly response: to and value are always present
+    // Validate pre-encoded calldataOnly response
     expect(cdResp.to).toMatch(/^0x[a-fA-F0-9]{40}$/);
     expect(typeof cdResp.value).toBe('string');
+    expect(typeof cdResp.data).toBe('string');
+    expect((cdResp.data as string).startsWith('0x')).toBe(true);
 
-    // Either pre-encoded data OR abi+args must be present
-    const hasData = typeof cdResp.data === 'string';
-    const hasAbi = typeof cdResp.abi === 'string';
-    expect(hasData || hasAbi).toBe(true);
-
-    // Resolve calldata regardless of response shape
-    const encodedData = resolveCalldata(cdResp);
-
-    // feeToken and executionPrice may or may not be present depending on API version
-    const feeToken = typeof cdResp.feeToken === 'string'
-      ? cdResp.feeToken
-      : '0x0000000000000000000000000000000000000000';
-    const executionPrice = typeof cdResp.executionPrice === 'string'
-      ? cdResp.executionPrice
-      : '0';
+    const encodedData = cdResp.data as `0x${string}`;
 
     // Build calls manually (integrator responsibility)
-    const isErc20Fee = feeToken !== '0x0000000000000000000000000000000000000000';
-    const execPrice = BigInt(executionPrice);
-    const amountIn = BigInt(quote.amountIn);
-
     const calls: { to: `0x${string}`; value: bigint; data: `0x${string}` }[] = [];
 
     // 1. PM approve (USDC → Pimlico paymaster)
@@ -119,18 +102,14 @@ describe('erc4337 calldataonly', () => {
       }),
     });
 
-    // 2. Router approve (tokenIn → router)
-    const buffer = amountIn / 1000n || 1n; // 0.1% buffer for rounding
-    const approveAmount = isErc20Fee
-      ? amountIn + execPrice + buffer
-      : amountIn + buffer;
+    // 2. Router approve (tokenIn → router) — use MAX to avoid allowance edge cases
     calls.push({
       to: TESTNET_TOKENS.SEPOLIA_USDT.address as `0x${string}`,
       value: 0n,
       data: encodeFunctionData({
         abi: erc20Abi,
         functionName: 'approve',
-        args: [cdResp.to as `0x${string}`, approveAmount],
+        args: [cdResp.to as `0x${string}`, MAX_UINT256],
       }),
     });
 

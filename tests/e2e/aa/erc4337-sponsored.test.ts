@@ -19,6 +19,7 @@ import { getAccount, createPublicClientForChain } from '../helpers/wallet.js';
 import { getBalances, calcDelta } from '../helpers/balance.js';
 import { pollUntil } from '../helpers/polling.js';
 import { pimlicoRpc } from '../helpers/pimlico.js';
+import { ensureSmartAccountReady } from '../helpers/smart-account.js';
 
 const erc20Abi = parseAbi([
   'function approve(address spender, uint256 amount) returns (bool)',
@@ -29,6 +30,7 @@ describe('erc4337 sponsored paymaster', () => {
   let sdk: CrossCurveSDK;
   const owner = getAccount();
   let sepoliaClient: ReturnType<typeof createPublicClientForChain>;
+  let smartAccount: Awaited<ReturnType<typeof toCoinbaseSmartAccount>>;
 
   beforeAll(async () => {
     sdk = new CrossCurveSDK({
@@ -37,13 +39,13 @@ describe('erc4337 sponsored paymaster', () => {
     });
     await sdk.init();
     sepoliaClient = createPublicClientForChain(TESTNET_CHAINS.SEPOLIA);
+    smartAccount = await toCoinbaseSmartAccount({
+      client: sepoliaClient, owners: [owner], version: '1.1',
+    });
+    await ensureSmartAccountReady(sdk, sepoliaClient, smartAccount, owner);
   });
 
   it('should execute swap with custom paymaster (integrator adds PM approve)', async () => {
-    const smartAccount = await toCoinbaseSmartAccount({
-      client: sepoliaClient, owners: [owner], version: '1.1',
-    });
-
     // Get quote
     const quotes = await sdk.routing.scan({
       params: {

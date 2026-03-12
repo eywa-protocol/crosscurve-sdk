@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { custom, encodeFunctionData, parseAbi } from 'viem';
 import { sepolia } from 'viem/chains';
+import { createPaymasterClient } from 'viem/account-abstraction';
 import { to7702SimpleSmartAccount } from 'permissionless/accounts';
-import { createSmartAccountClient } from 'permissionless';
+import { createSmartAccountClient } from 'permissionless/clients';
 import { createPimlicoClient } from 'permissionless/clients/pimlico';
 import { CrossCurveSDK } from '../../../src/index.js';
 import type { AATransaction } from '../../../src/index.js';
@@ -99,6 +100,8 @@ describe('erc7702 sponsored paymaster', () => {
       chain: sepolia,
     });
 
+    const paymasterClient = createPaymasterClient({ transport: pimlicoTransport });
+
     const smartAccount = await to7702SimpleSmartAccount({
       client: sepoliaClient,
       owner,
@@ -115,12 +118,12 @@ describe('erc7702 sponsored paymaster', () => {
       bundlerTransport: pimlicoTransport,
       paymaster: {
         async getPaymasterData(params) {
-          return pimlicoClient.getPaymasterData({
+          return paymasterClient.getPaymasterData({
             ...params, context: integratorPmContext,
           });
         },
         async getPaymasterStubData(params) {
-          return pimlicoClient.getPaymasterStubData({
+          return paymasterClient.getPaymasterStubData({
             ...params, context: integratorPmContext,
           });
         },
